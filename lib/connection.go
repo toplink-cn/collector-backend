@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"sync"
 
 	"github.com/streadway/amqp"
 )
@@ -76,38 +75,23 @@ func (c *Connection) ListenQ(ch *amqp.Channel, q amqp.Queue) {
 	)
 	util.FailOnError(err, "Failed to register a consumer")
 
-	var wg sync.WaitGroup
-
-	coroutine_nums := default_coroutine_nums
-	if len(msgs) > default_coroutine_nums*2 {
-		coroutine_nums = default_coroutine_nums * 2
-		if coroutine_nums > max_coroutine_nums {
-			coroutine_nums = max_coroutine_nums
-		}
-	}
-
-	wg.Add(coroutine_nums)
 	// 处理接收到的消息
 	for d := range msgs {
-		go func(d amqp.Delivery, wg *sync.WaitGroup) {
-			// log.Printf("Received a message: %s", d.Body)
-			var msg Msg
-			err := json.Unmarshal(d.Body, &msg)
-			if err != nil {
-				fmt.Printf("无法解析JSON数据: %v", err)
-				return
-			}
-			if msg.TryTimes >= max_try_times {
-				fmt.Printf("%s try timeout", msg.Type)
-				return
-			}
-			msg.TryTimes++
-			if msg.Type == "" {
-				return
-			}
-			handleCollectReturn(msg)
-			wg.Done()
-		}(d, &wg)
+		// log.Printf("Received a message: %s", d.Body)
+		var msg Msg
+		err := json.Unmarshal(d.Body, &msg)
+		if err != nil {
+			fmt.Printf("无法解析JSON数据: %v", err)
+			return
+		}
+		if msg.TryTimes >= max_try_times {
+			fmt.Printf("%s try timeout", msg.Type)
+			return
+		}
+		msg.TryTimes++
+		if msg.Type == "" {
+			return
+		}
+		go handleCollectReturn(msg)
 	}
-	wg.Wait()
 }

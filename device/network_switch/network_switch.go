@@ -4,9 +4,9 @@ import (
 	"collector-backend/db"
 	"collector-backend/device"
 	"collector-backend/device/network_switch/switch_port"
+	"collector-backend/util"
 	"encoding/json"
 	"fmt"
-	"os"
 	"strconv"
 	"time"
 
@@ -27,10 +27,7 @@ func HandleCollectReturn(data string) {
 	// fmt.Println(data)
 	var ns NetworkSwitch
 	err := json.Unmarshal([]byte(data), &ns)
-	if err != nil {
-		fmt.Printf("无法解析JSON数据: %v", err)
-		return
-	}
+	util.FailOnError(err, "无法解析JSON数据")
 	c := db.GetInfluxDbConnection()
 
 	fmt.Println("start add points")
@@ -55,12 +52,18 @@ func HandleCollectReturn(data string) {
 	}
 
 	// port
+	mysql_conn := db.GetMysqlConnection()
+	defer mysql_conn.Close()
 	directions := map[string]string{"in": "in", "out": "out"}
+	mapStatus := map[string]string{"disconnected": "disconnected", "disabled": "disabled"}
 	for _, port := range ns.Ports {
+		port_query := "UPDATE switch_ports SET updated_at = ?"
+		port_query_args := []any{time.Now()}
 		for _, pdu := range port.Pdus {
 			if pdu.Key == "" {
 				continue
 			}
+			_val := pdu.Value
 			_, ok := directions[pdu.Key]
 			if ok {
 				p := client.Point{
@@ -72,15 +75,27 @@ func HandleCollectReturn(data string) {
 					},
 					Time: ns.Time,
 					Fields: map[string]interface{}{
-						"value": pdu.Value.(float64),
+						"value": _val.(float64),
 					},
 				}
 				points = append(points, p)
-			} else {
-				fmt.Println("need write into mysql", pdu.Key, pdu.Value)
+				continue
 			}
-
+			_, ok = mapStatus[pdu.Key]
+			if ok {
+				port_query += " , " + pdu.Key + " = ?"
+				_status := 0
+				if int(_val.(float64)) == 2 {
+					_status = 1
+				}
+				port_query_args = append(port_query_args, _status)
+				continue
+			}
 		}
+		port_query += " where id = ?"
+		port_query_args = append(port_query_args, port.ID)
+		_, err := mysql_conn.Exec(port_query, port_query_args...)
+		util.FailOnError(err, "执行sql update 出错")
 	}
 
 	// fmt.Println(points)
@@ -98,23 +113,4 @@ func HandleCollectReturn(data string) {
 	}
 
 	fmt.Println("done")
-}
-
-func writeLocalData(content string) {
-	// 打开文件，如果文件不存在则创建，文件已存在则截断内容
-	file, err := os.OpenFile("./data.txt", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-	if err != nil {
-		fmt.Println("无法打开文件:", err)
-		return
-	}
-	defer file.Close()
-
-	// 将文本内容写入文件
-	_, err = file.WriteString(content)
-	if err != nil {
-		fmt.Println("写入文件失败:", err)
-		return
-	}
-
-	fmt.Println("文本写入成功！")
 }

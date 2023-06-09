@@ -24,3 +24,9 @@ type SwitchPort struct {
 	Connection           device.SNMPConnection `json:"-"`
 	RevertedOriginalOids map[string]string     `json:"-"`
 }
+
+type SwitchPortModel struct {
+	ID           int
+	Disconnected int
+	Disabled     int
+}

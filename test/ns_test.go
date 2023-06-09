@@ -1,7 +1,7 @@
 package test
 
 import (
-	"collector-backend/db"
+	database "collector-backend/db"
 	"collector-backend/device/network_switch"
 	"collector-backend/util"
 	"encoding/json"
@@ -13,11 +13,12 @@ import (
 	"testing"
 	"time"
 
+	_ "github.com/go-sql-driver/mysql"
 	client "github.com/influxdata/influxdb1-client"
 )
 
 func TestWritePoint(t *testing.T) {
-	c := db.GetInfluxDbConnection()
+	c := database.GetInfluxDbConnection()
 
 	points := []client.Point{}
 
@@ -91,7 +92,7 @@ func TestData(t *testing.T) {
 	err = json.Unmarshal(content, &ns)
 	util.FailOnError(err, "无法解析JSON")
 
-	c := db.GetInfluxDbConnection()
+	c := database.GetInfluxDbConnection()
 
 	fmt.Println("start add points")
 	points := []client.Point{}
