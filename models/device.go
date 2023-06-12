@@ -1,4 +1,4 @@
-package device
+package models
 
 type SNMPConnection struct {
 	Target    string `json:"target"`
@@ -11,4 +11,9 @@ type Pdu struct {
 	Oid   string      `json:"oid"`
 	Key   string      `json:"key"`
 	Value interface{} `json:"value"`
+}
+
+type SqlQuery struct {
+	Query string
+	Args  []any
 }

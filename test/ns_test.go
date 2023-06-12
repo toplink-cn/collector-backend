@@ -2,7 +2,7 @@ package test
 
 import (
 	database "collector-backend/db"
-	"collector-backend/device/network_switch"
+	"collector-backend/models"
 	"collector-backend/util"
 	"encoding/json"
 	"fmt"
@@ -88,7 +88,7 @@ func TestData(t *testing.T) {
 	content, err := io.ReadAll(file)
 	util.FailOnError(err, "无法读取文件内容")
 	// 解析JSON
-	var ns network_switch.NetworkSwitch
+	var ns models.NetworkSwitch
 	err = json.Unmarshal(content, &ns)
 	util.FailOnError(err, "无法解析JSON")
 

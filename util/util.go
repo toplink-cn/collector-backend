@@ -7,3 +7,9 @@ func FailOnError(err error, msg string) {
 		log.Fatalf("%s: %s", msg, err)
 	}
 }
+
+func LogIfErr(err error) {
+	if err != nil {
+		log.Printf("%s: %s", err.Error())
+	}
+}
