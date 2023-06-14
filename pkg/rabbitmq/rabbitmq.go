@@ -3,7 +3,8 @@ package rabbitmq
 import (
 	"collector-backend/db"
 	"collector-backend/models"
-	"collector-backend/pkg/collect_return"
+	"collector-backend/pkg/collect_return/server_collect_return"
+	"collector-backend/pkg/collect_return/switch_collect_return"
 	"collector-backend/services"
 	"collector-backend/util"
 	"encoding/json"
@@ -123,9 +124,13 @@ func (ctrl *Controller) ListenQueue() {
 		ctrl.Pool.Go(func() {
 			switch msg.Type {
 			case "switch":
-				services.RegisterCollectReturn(collect_return.NewSwitchCollectReturn(ctrl.InfluxPointChannel, ctrl.SqlQueryChannel))
+				services.RegisterCollectReturn(switch_collect_return.NewSwitchCollectReturn(ctrl.InfluxPointChannel, ctrl.SqlQueryChannel))
+				services.CollectReturn().HandleCollectReturn(msg.Data)
+			case "server":
+				services.RegisterCollectReturn(server_collect_return.NewServerCollectReturn(ctrl.InfluxPointChannel, ctrl.SqlQueryChannel))
 				services.CollectReturn().HandleCollectReturn(msg.Data)
 			}
+
 		})
 	}
 }
@@ -139,7 +144,7 @@ func (ctrl *Controller) RunTimer() {
 			select {
 			case <-ticker.C:
 				second++
-				fmt.Println("InfluxDbSwitch current second:", second)
+				// fmt.Println("InfluxDbSwitch current second:", second)
 				ctrl.InfluxDbSwitch = false
 				if second%10 == 0 {
 					second = 0
@@ -161,7 +166,7 @@ func (ctrl *Controller) RunTimer() {
 			select {
 			case <-ticker.C:
 				second++
-				fmt.Println("SqlQuerySwitch current second:", second)
+				// fmt.Println("SqlQuerySwitch current second:", second)
 				ctrl.SqlQuerySwitch = false
 				if second%10 == 0 {
 					second = 0

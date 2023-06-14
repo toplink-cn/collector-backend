@@ -18,6 +18,5 @@ func main() {
 	ctrl.RunTimer()
 	go ctrl.ListenInfluxChannel()
 	go ctrl.ListenSqlQueryChannel()
-	go ctrl.ListenQueue()
 	ctrl.RunCtrl()
 }

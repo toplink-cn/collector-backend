@@ -1,4 +1,4 @@
-package collect_return
+package switch_collect_return
 
 import (
 	"collector-backend/models"
