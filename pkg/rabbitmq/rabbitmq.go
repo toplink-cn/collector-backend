@@ -5,6 +5,7 @@ import (
 	"collector-backend/models"
 	"collector-backend/pkg/collect_return/server_collect_return"
 	"collector-backend/pkg/collect_return/switch_collect_return"
+	"collector-backend/pkg/collect_return/system_collect_return"
 	"collector-backend/services"
 	"collector-backend/util"
 	"encoding/json"
@@ -129,8 +130,10 @@ func (ctrl *Controller) ListenQueue() {
 			case "server":
 				services.RegisterCollectReturn(server_collect_return.NewServerCollectReturn(ctrl.InfluxPointChannel, ctrl.SqlQueryChannel))
 				services.CollectReturn().HandleCollectReturn(msg.Data)
+			case "system":
+				services.RegisterCollectReturn(system_collect_return.NewSystemCollectReturn(ctrl.InfluxPointChannel, ctrl.SqlQueryChannel))
+				services.CollectReturn().HandleCollectReturn(msg.Data)
 			}
-
 		})
 	}
 }
@@ -185,7 +188,7 @@ func (ctrl *Controller) RunTimer() {
 func (ctrl *Controller) ListenInfluxChannel() {
 	for {
 		len := len(ctrl.InfluxPointChannel)
-		fmt.Printf("%v points chan len: %d, InfluxDbSwitch: %v  \n", time.Now().Format("2016-01-02 15:04:05"), len, ctrl.InfluxDbSwitch)
+		// fmt.Printf("%v points chan len: %d, InfluxDbSwitch: %v  \n", time.Now().Format("2016-01-02 15:04:05"), len, ctrl.InfluxDbSwitch)
 
 		if len == 0 {
 			time.Sleep(1 * time.Second)
@@ -230,7 +233,7 @@ func (ctrl *Controller) ListenInfluxChannel() {
 func (ctrl *Controller) ListenSqlQueryChannel() {
 	for {
 		len := len(ctrl.SqlQueryChannel)
-		fmt.Printf("%v sqlQuery chan len: %d, SqlQuerySwitch: %v \n", time.Now().Format("2016-01-02 15:04:05"), len, ctrl.SqlQuerySwitch)
+		// fmt.Printf("%v sqlQuery chan len: %d, SqlQuerySwitch: %v \n", time.Now().Format("2016-01-02 15:04:05"), len, ctrl.SqlQuerySwitch)
 
 		if len == 0 {
 			time.Sleep(1 * time.Second)
