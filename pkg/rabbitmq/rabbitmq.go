@@ -54,9 +54,9 @@ type Controller struct {
 	LastSqlQueryChanLen    int
 }
 
-func init() {
-	services.RegisterRabbitMQCtrl(NewCtrl())
-}
+// func init() {
+// 	services.RegisterRabbitMQCtrl(NewCtrl())
+// }
 
 func NewCtrl() *Controller {
 	return &Controller{
@@ -273,4 +273,29 @@ func (ctrl *Controller) ListenSqlQueryChannel() {
 			continue
 		}
 	}
+}
+
+func PublishMsg(ch *amqp.Channel, q amqp.Queue, msg models.Msg) error {
+	jsonData, err := json.Marshal(msg)
+	if err != nil {
+		fmt.Printf("无法编码为JSON格式: %v", err)
+	}
+	// 发布消息到队列
+	err = ch.Publish(
+		"",     // 交换机名称
+		q.Name, // 队列名称
+		false,  // 是否强制
+		false,  // 是否立即发送
+		amqp.Publishing{
+			ContentType: "text/plain",
+			Body:        []byte(jsonData),
+		},
+	)
+	if err != nil {
+		log.Printf("无法发布消息: %v", err)
+		return err
+	}
+
+	fmt.Println("消息已发送到队列！")
+	return nil
 }
