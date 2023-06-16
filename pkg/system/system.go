@@ -3,7 +3,6 @@ package system
 import (
 	"bytes"
 	model_system "collector-backend/models/system"
-	"collector-backend/util"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -33,18 +32,20 @@ func (sc *SystemCollector) Collect() {
 	sc.collectDisk()
 	sc.collectNet()
 	sc.SystemInfo.Time = time.Now()
-
-	fmt.Println("collect done \n", sc.SystemInfo)
+	// fmt.Println("collect done \n", sc.SystemInfo)
 }
 
 func (sc *SystemCollector) collectIOStat() {
 	args := []string{"-x", "-o", "JSON", "1", "2"}
 	out, err := sc.run("iostat", args)
-	util.LogIfErr(err)
+	if err != nil {
+		return
+	}
 
 	var iostat model_system.IoStat
 	if err := json.Unmarshal([]byte(out), &iostat); err != nil {
 		fmt.Println("Failed to unmarshal JSON:", err)
+		return
 	}
 
 	if len(iostat.Sysstat.Hosts) > 0 {
@@ -71,7 +72,7 @@ func (sc *SystemCollector) collectIOStat() {
 				Value: disks,
 			}
 			sc.SystemInfo.Parames = append(sc.SystemInfo.Parames, disksParame)
-			fmt.Println(sc.SystemInfo.Parames)
+			// fmt.Println(sc.SystemInfo.Parames)
 		}
 	}
 }
@@ -80,7 +81,7 @@ func (sc *SystemCollector) collectRam() {
 	vm, err := mem.VirtualMemory()
 	if err != nil {
 		fmt.Println("Failed to get virtual memory info:", err)
-		panic(err)
+		return
 	}
 
 	disksParame := model_system.Parame{
@@ -97,7 +98,10 @@ func (sc *SystemCollector) collectRam() {
 func (sc *SystemCollector) collectDisk() {
 	args := []string{"-c", `mount | grep /app | grep -v iso | grep -v /app/run | awk '{print $3}'`}
 	out, err := sc.run("bash", args)
-	util.LogIfErr(err)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
 
 	lines := bytes.Split(out, []byte{'\n'})
 	diskPath := map[string]map[string]interface{}{}
@@ -114,7 +118,7 @@ func (sc *SystemCollector) collectDisk() {
 			continue
 		}
 
-		fmt.Println(usage)
+		// fmt.Println(usage)
 
 		usageStat := map[string]interface{}{
 			"total":      usage.Total,
@@ -180,7 +184,7 @@ func (sc *SystemCollector) run(command string, args []string) ([]byte, error) {
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, command, args...)
-	fmt.Println("cmd: ", cmd)
+	// fmt.Println("cmd: ", cmd)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return out, err

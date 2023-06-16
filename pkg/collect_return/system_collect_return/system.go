@@ -5,7 +5,6 @@ import (
 	model_system "collector-backend/models/system"
 	"collector-backend/util"
 	"encoding/json"
-	"fmt"
 	"reflect"
 	"strconv"
 
@@ -58,7 +57,7 @@ func (scr *SystemCollectReturn) HandleCollectReturn(data string) error {
 						"value": val,
 					},
 				}
-				fmt.Println(p)
+				// fmt.Println(p)
 				scr.InfluxPointChannel <- p
 			case reflect.Map:
 				for k, v := range val.(map[string]interface{}) {
@@ -76,7 +75,7 @@ func (scr *SystemCollectReturn) HandleCollectReturn(data string) error {
 							"value": v,
 						},
 					}
-					fmt.Println(p)
+					// fmt.Println(p)
 					scr.InfluxPointChannel <- p
 				}
 			}

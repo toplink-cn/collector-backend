@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/robfig/cron"
+	"github.com/robfig/cron/v3"
 	"github.com/streadway/amqp"
 )
 
@@ -43,22 +43,28 @@ func NewCrontab(SqlQueryChannel chan models.SqlQuery, ch *amqp.Channel, q amqp.Q
 
 func (c *Crontab) Run() {
 	go func() {
-		cr := cron.New()
+		cr := cron.New(cron.WithParser(cron.NewParser(
+			cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor,
+		)))
 		cr.AddFunc(expression, func() {
-			fmt.Println("执行任务:", time.Now())
-			c.doCollectSystemInfo()
+			fmt.Println("disabled: ", disabled)
+			fmt.Println("expression: ", expression)
+			if !disabled {
+				fmt.Println("执行任务:", time.Now())
+				c.doCollectSystemInfo()
+			}
 		})
 		cr.Start()
 	}()
 
 	go func() {
-		// ticker := time.NewTicker(1 * time.Minute)
-		ticker := time.NewTicker(5 * time.Second)
+		fmt.Println("startTicker")
+		ticker := time.NewTicker(1 * time.Minute)
 		defer ticker.Stop()
-
 		for {
 			select {
 			case <-ticker.C:
+				fmt.Println("do getCrontabFromDB")
 				c.getCrontabFromDB()
 			}
 		}
@@ -93,9 +99,6 @@ func (c *Crontab) getCrontabFromDB() error {
 }
 
 func (c *Crontab) doCollectSystemInfo() {
-	if disabled {
-		return
-	}
 	sc := system.NewSystemCollector(&models_system.SystemInfo{ID: 0})
 	sc.Collect()
 
