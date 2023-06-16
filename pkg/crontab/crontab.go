@@ -24,7 +24,7 @@ var disabled bool
 
 func init() {
 	expression = "* * * * * "
-	disabled = false
+	disabled = true
 }
 
 type Crontab struct {
