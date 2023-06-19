@@ -59,8 +59,7 @@ func (c *Crontab) Run() {
 
 	go func() {
 		fmt.Println("startTicker")
-		// ticker := time.NewTicker(1 * time.Minute)
-		ticker := time.NewTicker(10 * time.Second)
+		ticker := time.NewTicker(1 * time.Minute)
 		defer ticker.Stop()
 		for {
 			select {
