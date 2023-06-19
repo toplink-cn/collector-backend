@@ -131,7 +131,12 @@ func (sc *SystemCollector) collectDisk() {
 		total += usage.Total
 		used += usage.Used
 	}
-	percentage := used / total * 100
+	var percentage uint64
+	if used == 0 || total == 0 {
+		percentage = 0
+	} else {
+		percentage = used / total * 100
+	}
 
 	disksParame := model_system.Parame{
 		Key: "disk",

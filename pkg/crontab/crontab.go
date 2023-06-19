@@ -59,7 +59,8 @@ func (c *Crontab) Run() {
 
 	go func() {
 		fmt.Println("startTicker")
-		ticker := time.NewTicker(1 * time.Minute)
+		// ticker := time.NewTicker(1 * time.Minute)
+		ticker := time.NewTicker(10 * time.Second)
 		defer ticker.Stop()
 		for {
 			select {
@@ -86,19 +87,21 @@ func (c *Crontab) getCrontabFromDB() error {
 		fmt.Println("Cannot get data from dcim schedules, Err: ", err.Error())
 		return err
 	}
+	fmt.Println("schedule: ", schedule)
 
 	if schedule.Disabled == 1 {
 		fmt.Println("SystemInfo disabled")
-		disabled = false
+		disabled = true
 		return err
 	}
 
-	disabled = true
+	disabled = false
 	expression = schedule.Expression
 	return nil
 }
 
 func (c *Crontab) doCollectSystemInfo() {
+	fmt.Println("start doCollectSystemInfo")
 	sc := system.NewSystemCollector(&models_system.SystemInfo{ID: 0})
 	sc.Collect()
 
