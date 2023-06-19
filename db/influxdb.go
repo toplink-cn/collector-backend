@@ -13,7 +13,7 @@ import (
 func GetInfluxDbConnection() *client.Client {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("无法加载 .env 文件")
+		log.Println("无法加载 .env 文件")
 	}
 
 	// 访问环境变量
