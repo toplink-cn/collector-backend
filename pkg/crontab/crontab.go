@@ -50,7 +50,7 @@ func (c *Crontab) Run() {
 			fmt.Println("disabled: ", disabled)
 			fmt.Println("expression: ", expression)
 			if !disabled {
-				fmt.Println("执行任务:", time.Now())
+				fmt.Println("exec task:", time.Now())
 				c.doCollectSystemInfo()
 			}
 		})
