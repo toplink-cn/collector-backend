@@ -8,6 +8,7 @@ import (
 	"collector-backend/pkg/collect_return/system_collect_return"
 	"collector-backend/services"
 	"collector-backend/util"
+	"collector-backend/util/crypt_util"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -52,6 +53,7 @@ type Controller struct {
 	Pool                   gopool.Pool
 	LastInfluxPointChanLen int
 	LastSqlQueryChanLen    int
+	CryptUtil              *crypt_util.CryptUtil
 }
 
 // func init() {
@@ -65,6 +67,7 @@ func NewCtrl() *Controller {
 		Pool:               gopool.NewPool("collector-handler", PoolCap, gopool.NewConfig()),
 		InfluxDbResetTimer: time.NewTimer(10 * time.Second),
 		SqlQueryResetTimer: time.NewTimer(10 * time.Second),
+		CryptUtil:          crypt_util.New(),
 	}
 }
 
@@ -114,7 +117,11 @@ func (ctrl *Controller) ListenQueue() {
 	for d := range msgs {
 		// log.Printf("Received a message: %s", d.Body)
 		var msg models.Msg
-		err := json.Unmarshal(d.Body, &msg)
+		decryptedMsg, err := ctrl.CryptUtil.DecryptViaPrivate(d.Body)
+		if err != nil {
+			log.Fatalln("fail to decrypt data")
+		}
+		err = json.Unmarshal(decryptedMsg, &msg)
 		if err != nil {
 			fmt.Printf("无法解析JSON数据: %v", err)
 			return
@@ -275,10 +282,16 @@ func (ctrl *Controller) ListenSqlQueryChannel() {
 	}
 }
 
-func PublishMsg(ch *amqp.Channel, q amqp.Queue, msg models.Msg) error {
+func (ctrl *Controller) PublishMsg(ch *amqp.Channel, q amqp.Queue, msg models.Msg) error {
 	jsonData, err := json.Marshal(msg)
 	if err != nil {
-		fmt.Printf("无法编码为JSON格式: %v", err)
+		fmt.Printf("Cannot be encoded in json format: %v", err)
+		return err
+	}
+	encryptedMsg, err := ctrl.CryptUtil.EncryptViaPrivate(jsonData)
+	if err != nil {
+		fmt.Printf("Cannot encrypted data: %v", err)
+		return err
 	}
 	// 发布消息到队列
 	err = ch.Publish(
@@ -288,7 +301,7 @@ func PublishMsg(ch *amqp.Channel, q amqp.Queue, msg models.Msg) error {
 		false,  // 是否立即发送
 		amqp.Publishing{
 			ContentType: "text/plain",
-			Body:        []byte(jsonData),
+			Body:        encryptedMsg,
 		},
 	)
 	if err != nil {
