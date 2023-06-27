@@ -53,7 +53,6 @@ type Controller struct {
 	Pool                   gopool.Pool
 	LastInfluxPointChanLen int
 	LastSqlQueryChanLen    int
-	CryptUtil              *crypt_util.CryptUtil
 }
 
 // func init() {
@@ -67,7 +66,6 @@ func NewCtrl() *Controller {
 		Pool:               gopool.NewPool("collector-handler", PoolCap, gopool.NewConfig()),
 		InfluxDbResetTimer: time.NewTimer(10 * time.Second),
 		SqlQueryResetTimer: time.NewTimer(10 * time.Second),
-		CryptUtil:          crypt_util.New(),
 	}
 }
 
@@ -117,7 +115,7 @@ func (ctrl *Controller) ListenQueue() {
 	for d := range msgs {
 		// log.Printf("Received a message: %s", d.Body)
 		var msg models.Msg
-		decryptedMsg, err := ctrl.CryptUtil.DecryptViaPrivate(d.Body)
+		decryptedMsg, err := crypt_util.New().DecryptViaPrivate(d.Body)
 		if err != nil {
 			log.Fatalln("fail to decrypt data")
 		}
@@ -282,13 +280,13 @@ func (ctrl *Controller) ListenSqlQueryChannel() {
 	}
 }
 
-func (ctrl *Controller) PublishMsg(ch *amqp.Channel, q amqp.Queue, msg models.Msg) error {
+func PublishMsg(ch *amqp.Channel, q amqp.Queue, msg models.Msg) error {
 	jsonData, err := json.Marshal(msg)
 	if err != nil {
 		fmt.Printf("Cannot be encoded in json format: %v", err)
 		return err
 	}
-	encryptedMsg, err := ctrl.CryptUtil.EncryptViaPrivate(jsonData)
+	encryptedMsg, err := crypt_util.New().EncryptViaPrivate(jsonData)
 	if err != nil {
 		fmt.Printf("Cannot encrypted data: %v", err)
 		return err
