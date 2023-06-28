@@ -117,7 +117,7 @@ func (ctrl *Controller) ListenQueue() {
 		var msg models.Msg
 		decryptedMsg, err := crypt_util.New().DecryptViaPrivate(d.Body)
 		if err != nil {
-			log.Println("fail to decrypt data, ", d.Body)
+			log.Println("fail to decrypt data, ", string(d.Body))
 			return
 		}
 		err = json.Unmarshal(decryptedMsg, &msg)
