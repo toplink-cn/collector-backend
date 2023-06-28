@@ -31,8 +31,11 @@ func New() *CryptUtil {
 			log.Fatal("Private key not found")
 		}
 
+		log.Println("privateKeyPEM: ", privateKeyPEM)
 		block, _ := pem.Decode(privateKeyPEM)
+		log.Println("block: ", block)
 		if block == nil || block.Type != "PRIVATE KEY" {
+			log.Println("block Type: ", block.Type)
 			log.Fatal("Failed to decode private key")
 		}
 
