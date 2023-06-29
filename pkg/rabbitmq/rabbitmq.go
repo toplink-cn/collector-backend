@@ -287,7 +287,7 @@ func PublishMsg(ch *amqp.Channel, q amqp.Queue, msg models.Msg) error {
 		fmt.Printf("Cannot be encoded in json format: %v", err)
 		return err
 	}
-	encryptedMsg, err := crypt_util.New().EncryptViaPrivate(jsonData)
+	encryptedMsg, err := crypt_util.New().EncryptViaPub(jsonData)
 	if err != nil {
 		fmt.Printf("Cannot encrypted data: %v", err)
 		return err
