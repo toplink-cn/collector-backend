@@ -115,6 +115,8 @@ func (cu *CryptUtil) DecryptViaPrivate(input []byte) ([]byte, error) {
 		data := input[i : i+decryptChunkSize]
 		decrypted, err := gorsa.RSA.PriKeyDECRYPT(data)
 		if err != nil {
+			log.Println(data)
+			log.Println(string(data))
 			panic(err)
 		}
 		decryptedData = append(decryptedData, decrypted...)

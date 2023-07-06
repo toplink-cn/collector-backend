@@ -73,15 +73,29 @@ func (ctrl *Controller) SetupChannelAndQueue(name string, amqpConn *amqp.Connect
 	ch, err := amqpConn.Channel()
 	util.FailOnError(err, "Failed to open a channel")
 
+	// err = ch.ExchangeDeclare(
+	// 	"dcim-collector",
+	// 	"direct",
+	// 	false,
+	// 	true,
+	// 	false,
+	// 	false,
+	// 	nil,
+	// )
+	util.FailOnError(err, "Failed to declear an exchange")
+
 	q, err := ch.QueueDeclare(
 		name,  // 队列名称
 		false, // 是否持久化
-		false, // 是否自动删除
+		true,  // 是否自动删除
 		false, // 是否具有排他性
 		false, // 是否阻塞等待
 		nil,   // 额外的属性
 	)
 	util.FailOnError(err, "Failed to declare a queue")
+
+	// err = ch.QueueBind(name, "backend", "dcim-collector", false, nil)
+	// util.FailOnError(err, "Failed to bind queue")
 
 	log.Printf("%s channel & queue declared", name)
 
@@ -102,9 +116,9 @@ func (ctrl *Controller) RunCtrl() {
 func (ctrl *Controller) ListenQueue() {
 	msgs, err := ctrl.Channel.Consume(
 		ctrl.Queue.Name, // 队列名称
-		"",              // 消费者标签
+		"slave-0",       // 消费者标签
 		true,            // 是否自动回复
-		false,           // 是否独占
+		true,            // 是否独占
 		false,           // 是否阻塞等待
 		false,           // 额外的属性
 		nil,             // 消费者取消回调函数
