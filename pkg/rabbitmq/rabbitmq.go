@@ -9,6 +9,7 @@ import (
 	"collector-backend/services"
 	"collector-backend/util"
 	"collector-backend/util/crypt_util"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -129,7 +130,12 @@ func (ctrl *Controller) ListenQueue() {
 	for d := range msgs {
 		// log.Printf("Received a message: %s", d.Body)
 		var msg models.Msg
-		decryptedMsg, err := crypt_util.New().DecryptViaPrivate(d.Body)
+		decodedMsg, err := base64.StdEncoding.DecodeString(string(d.Body))
+		if err != nil {
+			log.Println("fail to decode base64 data, ", string(d.Body))
+			return
+		}
+		decryptedMsg, err := crypt_util.New().DecryptViaPrivate(decodedMsg)
 		if err != nil {
 			log.Println("fail to decrypt data, ", string(d.Body))
 			return
@@ -306,6 +312,7 @@ func PublishMsg(ch *amqp.Channel, q amqp.Queue, msg models.Msg) error {
 		fmt.Printf("Cannot encrypted data: %v", err)
 		return err
 	}
+	encodedMsg := base64.StdEncoding.EncodeToString(encryptedMsg)
 	// 发布消息到队列
 	err = ch.Publish(
 		"",     // 交换机名称
@@ -314,7 +321,7 @@ func PublishMsg(ch *amqp.Channel, q amqp.Queue, msg models.Msg) error {
 		false,  // 是否立即发送
 		amqp.Publishing{
 			ContentType: "text/plain",
-			Body:        encryptedMsg,
+			Body:        []byte(encodedMsg),
 		},
 	)
 	if err != nil {
