@@ -8,7 +8,6 @@ import (
 	"collector-backend/pkg/collect_return/system_collect_return"
 	"collector-backend/services"
 	"collector-backend/util"
-	"collector-backend/util/crypt_util"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -90,7 +89,7 @@ func (ctrl *Controller) SetupChannelAndQueue(name string, amqpConn *amqp.Connect
 		false, // 是否持久化
 		true,  // 是否自动删除
 		false, // 是否具有排他性
-		false, // 是否阻塞等待
+		true,  // 是否阻塞等待
 		nil,   // 额外的属性
 	)
 	util.FailOnError(err, "Failed to declare a queue")
@@ -135,12 +134,12 @@ func (ctrl *Controller) ListenQueue() {
 			log.Println("fail to decode base64 data, ", string(d.Body))
 			return
 		}
-		decryptedMsg, err := crypt_util.New().DecryptViaPrivate(decodedMsg)
-		if err != nil {
-			log.Println("fail to decrypt data, ", string(d.Body))
-			return
-		}
-		err = json.Unmarshal(decryptedMsg, &msg)
+		// decryptedMsg, err := crypt_util.New().DecryptViaPrivate(decodedMsg)
+		// if err != nil {
+		// 	log.Println("fail to decrypt data, ", string(d.Body))
+		// 	return
+		// }
+		err = json.Unmarshal(decodedMsg, &msg)
 		if err != nil {
 			fmt.Printf("无法解析JSON数据: %v", err)
 			return
@@ -307,12 +306,12 @@ func PublishMsg(ch *amqp.Channel, q amqp.Queue, msg models.Msg) error {
 		fmt.Printf("Cannot be encoded in json format: %v", err)
 		return err
 	}
-	encryptedMsg, err := crypt_util.New().EncryptViaPub(jsonData)
-	if err != nil {
-		fmt.Printf("Cannot encrypted data: %v", err)
-		return err
-	}
-	encodedMsg := base64.StdEncoding.EncodeToString(encryptedMsg)
+	// encryptedMsg, err := crypt_util.New().EncryptViaPub(jsonData)
+	// if err != nil {
+	// 	fmt.Printf("Cannot encrypted data: %v", err)
+	// 	return err
+	// }
+	encodedMsg := base64.StdEncoding.EncodeToString(jsonData)
 	// 发布消息到队列
 	err = ch.Publish(
 		"",     // 交换机名称
