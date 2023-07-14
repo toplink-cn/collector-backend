@@ -5,7 +5,6 @@ import (
 	"collector-backend/pkg/rabbitmq"
 	"collector-backend/util"
 	"log"
-	"os"
 )
 
 func main() {
@@ -14,12 +13,13 @@ func main() {
 
 func run() {
 	// 访问环境变量
-	amqpUsername := os.Getenv("RABBITMQ_USERNAME")
-	amqpPassowd := os.Getenv("RABBITMQ_PASSWORD")
-	amqpUrl := os.Getenv("RABBITMQ_URL")
+	// amqpUsername := os.Getenv("RABBITMQ_USERNAME")
+	// amqpPassowd := os.Getenv("RABBITMQ_PASSWORD")
+	// amqpUrl := os.Getenv("RABBITMQ_URL")
 
-	url := "amqp://" + amqpUsername + ":" + amqpPassowd + "@" + amqpUrl
+	// url := "amqp://" + amqpUsername + ":" + amqpPassowd + "@" + amqpUrl
 	// url := "amqps://" + amqpUsername + ":" + amqpPassowd + "@" + amqpUrl
+	url := "amqp://guest:guest@127.0.0.1:5672"
 	log.Println("amqp url: ", url)
 
 	config := rabbitmq.Config{Url: url}
