@@ -8,9 +8,12 @@ import (
 	"collector-backend/pkg/collect_return/system_collect_return"
 	"collector-backend/services"
 	"collector-backend/util"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"time"
 
@@ -36,6 +39,33 @@ type Config struct {
 func NewConnection(config Config) (Connection, error) {
 	conn := Connection{}
 	amqpConn, err := amqp.Dial(config.Url)
+	util.FailOnError(err, "Failed to connect to RabbitMQ")
+	conn.Conn = amqpConn
+	return conn, nil
+}
+
+func NewConnectionWithTLS(config Config) (Connection, error) {
+	cert, err := tls.LoadX509KeyPair("/app/ssl/client.crt", "/app/ssl/client.key")
+	if err != nil {
+		log.Fatalf("Failed to load X509 key pair: %v", err)
+	}
+
+	caCert, err := ioutil.ReadFile("/app/ssl/ca.crt")
+	if err != nil {
+		log.Fatalf("Failed to read CA certificate: %v", err)
+	}
+
+	caCertPool := x509.NewCertPool()
+	caCertPool.AppendCertsFromPEM(caCert)
+
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: true,
+		Certificates:       []tls.Certificate{cert},
+		RootCAs:            caCertPool,
+	}
+
+	conn := Connection{}
+	amqpConn, err := amqp.DialTLS(config.Url, tlsConfig)
 	util.FailOnError(err, "Failed to connect to RabbitMQ")
 	conn.Conn = amqpConn
 	return conn, nil

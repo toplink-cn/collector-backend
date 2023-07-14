@@ -4,6 +4,7 @@ import (
 	"collector-backend/pkg/crontab"
 	"collector-backend/pkg/rabbitmq"
 	"collector-backend/util"
+	"log"
 	"os"
 )
 
@@ -17,10 +18,13 @@ func run() {
 	amqpPassowd := os.Getenv("RABBITMQ_PASSWORD")
 	amqpUrl := os.Getenv("RABBITMQ_URL")
 
-	url := "amqp://" + amqpUsername + ":" + amqpPassowd + "@" + amqpUrl
+	// url := "amqp://" + amqpUsername + ":" + amqpPassowd + "@" + amqpUrl
+	url := "amqps://" + amqpUsername + ":" + amqpPassowd + "@" + amqpUrl
+	log.Println("amqp url: ", url)
 
 	config := rabbitmq.Config{Url: url}
-	conn, err := rabbitmq.NewConnection(config)
+	// conn, err := rabbitmq.NewConnection(config)
+	conn, err := rabbitmq.NewConnectionWithTLS(config)
 	util.LogIfErr(err)
 	defer conn.Conn.Close()
 
