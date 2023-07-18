@@ -19,7 +19,7 @@ func run() {
 
 	// url := "amqp://" + amqpUsername + ":" + amqpPassowd + "@" + amqpUrl
 	// url := "amqps://" + amqpUsername + ":" + amqpPassowd + "@" + amqpUrl
-	url := "amqp://guest:guest@127.0.0.1:5672"
+	url := "amqp://guest:guest@0.0.0.0:5672"
 	log.Println("amqp url: ", url)
 
 	config := rabbitmq.Config{Url: url}
