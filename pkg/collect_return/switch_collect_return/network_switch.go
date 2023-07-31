@@ -1,21 +1,25 @@
 package switch_collect_return
 
 import (
+	"collector-backend/db"
 	"collector-backend/models"
 	"collector-backend/util"
 	"encoding/json"
+	"fmt"
 	"strconv"
+	"sync"
 	"time"
 
 	client "github.com/influxdata/influxdb1-client"
 )
 
 type SwitchCollectReturn struct {
-	InfluxPointChannel chan client.Point
-	SqlQueryChannel    chan models.SqlQuery
+	InfluxPointChannel  chan models.MyPoint
+	SqlQueryChannel     chan models.SqlQuery
+	NotificationChannel chan models.Notification
 }
 
-func NewSwitchCollectReturn(pointChannel chan client.Point, SqlQueryChannel chan models.SqlQuery) *SwitchCollectReturn {
+func NewSwitchCollectReturn(pointChannel chan models.MyPoint, SqlQueryChannel chan models.SqlQuery) *SwitchCollectReturn {
 	return &SwitchCollectReturn{
 		InfluxPointChannel: pointChannel,
 		SqlQueryChannel:    SqlQueryChannel,
@@ -27,6 +31,7 @@ func (scr *SwitchCollectReturn) HandleCollectReturn(data string) error {
 	var ns models.NetworkSwitch
 	err := json.Unmarshal([]byte(data), &ns)
 	util.FailOnError(err, "无法解析JSON数据")
+	wg := sync.WaitGroup{}
 	// switch
 	for _, pdu := range ns.Pdus {
 		if pdu.Key == "" {
@@ -43,7 +48,11 @@ func (scr *SwitchCollectReturn) HandleCollectReturn(data string) error {
 				"value": pdu.Value.(float64),
 			},
 		}
-		scr.InfluxPointChannel <- p
+		wg.Add(1)
+		scr.InfluxPointChannel <- models.MyPoint{
+			Wg:    &wg,
+			Point: p,
+		}
 	}
 
 	// port
@@ -61,7 +70,37 @@ func (scr *SwitchCollectReturn) HandleCollectReturn(data string) error {
 			_val := pdu.Value
 			_, ok := directions[pdu.Key]
 			if ok {
-				p := client.Point{
+				lastVal, _ := scr.getLastPortFlow(ns.ID, port.ID, pdu.Key)
+				curVal := _val.(float64)
+
+				var diffVal float64
+				if lastVal == curVal {
+					diffVal = lastVal
+				} else if curVal > lastVal {
+					diffVal = curVal - lastVal
+				} else {
+					diffVal = 0
+				}
+
+				p1 := client.Point{
+					Measurement: "flow_total",
+					Tags: map[string]string{
+						"type":      pdu.Key,
+						"switch_id": strconv.Itoa(int(ns.ID)),
+						"port_id":   strconv.Itoa(int(port.ID)),
+					},
+					Time: ns.Time,
+					Fields: map[string]interface{}{
+						"value": diffVal,
+					},
+				}
+				wg.Add(1)
+				scr.InfluxPointChannel <- models.MyPoint{
+					Wg:    &wg,
+					Point: p1,
+				}
+
+				p2 := client.Point{
 					Measurement: "flow",
 					Tags: map[string]string{
 						"type":      pdu.Key,
@@ -73,7 +112,11 @@ func (scr *SwitchCollectReturn) HandleCollectReturn(data string) error {
 						"value": _val.(float64),
 					},
 				}
-				scr.InfluxPointChannel <- p
+				wg.Add(1)
+				scr.InfluxPointChannel <- models.MyPoint{
+					Wg:    &wg,
+					Point: p2,
+				}
 				continue
 			}
 			_, ok = mapStatus[pdu.Key]
@@ -92,5 +135,54 @@ func (scr *SwitchCollectReturn) HandleCollectReturn(data string) error {
 		scr.SqlQueryChannel <- sql_query
 	}
 
+	wg.Wait()
+	fmt.Println("wg wait done")
+	scr.NotificationChannel <- models.Notification{
+		Type:  "switch",
+		RelID: ns.ID,
+		Time:  time.Now(),
+	}
+	fmt.Println("push into notification channel")
+
 	return nil
+}
+
+func (scr *SwitchCollectReturn) getLastPortFlow(switchId uint64, portId uint64, direction string) (float64, error) {
+	c := db.GetInfluxDbConnection()
+
+	query := fmt.Sprintf("SELECT * FROM flow where switch_id='%s' and port_id='%s' and type='%s' order by time desc LIMIT 1", strconv.Itoa(int(switchId)), strconv.Itoa(int(portId)), direction)
+	q := client.Query{
+		Command:  query,
+		Database: "dcim",
+	}
+
+	response, err := c.Query(q)
+	if err != nil {
+		return 0, err
+	}
+
+	if response.Error() != nil {
+		return 0, response.Error()
+	}
+
+	vals := map[string]interface{}{}
+	for _, serie := range response.Results[0].Series {
+		for index, column := range serie.Columns {
+			val := serie.Values[0][index]
+			vals[column] = val
+		}
+	}
+	v := vals["value"].(json.Number)
+	var val float64
+	if intValue, err := v.Int64(); err == nil {
+		// 处理整数
+		val = float64(intValue)
+	} else if floatValue, err := v.Float64(); err == nil {
+		// 处理浮点数
+		val = float64(floatValue)
+	} else {
+		fmt.Println("Invalid number format:", v)
+	}
+
+	return val, nil
 }

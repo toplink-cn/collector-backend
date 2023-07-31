@@ -18,7 +18,7 @@ func run() {
 	// amqpUrl := os.Getenv("RABBITMQ_URL")
 
 	// url := "amqp://" + amqpUsername + ":" + amqpPassowd + "@" + amqpUrl
-	// url := "amqps://" + amqpUsername + ":" + amqpPassowd + "@" + amqpUrl
+	// url := "amqps://" + amqpUsername + ":" + amqpPassowwd + "@" + amqpUrl
 	url := "amqp://guest:guest@rabbitmq:5672/"
 	log.Println("amqp url: ", url)
 
@@ -28,15 +28,20 @@ func run() {
 	util.LogIfErr(err)
 	defer conn.Conn.Close()
 
-	ctrl := rabbitmq.NewCtrl()
+	notifyCtrl := rabbitmq.NewCtrl()
+	notifyCtrl.SetupChannelAndQueue("collector-notify", conn.Conn)
 
-	ctrl.SetupChannelAndQueue("collector-return", conn.Conn)
+	returnCtrl := rabbitmq.NewCtrl()
+	returnCtrl.SetupChannelAndQueue("collector-return", conn.Conn)
+	returnCtrl.NotifyChannel = notifyCtrl.Channel
+	returnCtrl.NotifyQueue = notifyCtrl.Queue
 
-	ct := crontab.NewCrontab(ctrl.SqlQueryChannel, ctrl.Channel, ctrl.Queue)
+	ct := crontab.NewCrontab(returnCtrl.SqlQueryChannel, returnCtrl.Channel, returnCtrl.Queue)
 	ct.Run()
 
-	ctrl.RunTimer()
-	go ctrl.ListenInfluxChannel()
-	go ctrl.ListenSqlQueryChannel()
-	ctrl.RunCtrl()
+	returnCtrl.RunTimer()
+	go returnCtrl.ListenInfluxChannel()
+	go returnCtrl.ListenSqlQueryChannel()
+	go returnCtrl.ListenNotificationChannel()
+	returnCtrl.RunCtrl()
 }

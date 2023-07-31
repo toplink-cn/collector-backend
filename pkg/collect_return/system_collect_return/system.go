@@ -7,16 +7,17 @@ import (
 	"encoding/json"
 	"reflect"
 	"strconv"
+	"sync"
 
 	client "github.com/influxdata/influxdb1-client"
 )
 
 type SystemCollectReturn struct {
-	InfluxPointChannel chan client.Point
+	InfluxPointChannel chan models.MyPoint
 	SqlQueryChannel    chan models.SqlQuery
 }
 
-func NewSystemCollectReturn(pointChannel chan client.Point, SqlQueryChannel chan models.SqlQuery) *SystemCollectReturn {
+func NewSystemCollectReturn(pointChannel chan models.MyPoint, SqlQueryChannel chan models.SqlQuery) *SystemCollectReturn {
 	return &SystemCollectReturn{
 		InfluxPointChannel: pointChannel,
 		SqlQueryChannel:    SqlQueryChannel,
@@ -38,6 +39,7 @@ func (scr *SystemCollectReturn) HandleCollectReturn(data string) error {
 		id = "0"
 	}
 
+	wg := sync.WaitGroup{}
 	for _, parame := range s.Parames {
 		for key, val := range parame.Value.(map[string]interface{}) {
 			field := reflect.ValueOf(val)
@@ -58,7 +60,11 @@ func (scr *SystemCollectReturn) HandleCollectReturn(data string) error {
 					},
 				}
 				// fmt.Println(p)
-				scr.InfluxPointChannel <- p
+				wg.Add(1)
+				scr.InfluxPointChannel <- models.MyPoint{
+					Wg:    &wg,
+					Point: p,
+				}
 			case reflect.Map:
 				for k, v := range val.(map[string]interface{}) {
 					p := client.Point{
@@ -76,11 +82,16 @@ func (scr *SystemCollectReturn) HandleCollectReturn(data string) error {
 						},
 					}
 					// fmt.Println(p)
-					scr.InfluxPointChannel <- p
+					wg.Add(1)
+					scr.InfluxPointChannel <- models.MyPoint{
+						Wg:    &wg,
+						Point: p,
+					}
 				}
 			}
 		}
 	}
+	wg.Wait()
 
 	return nil
 }

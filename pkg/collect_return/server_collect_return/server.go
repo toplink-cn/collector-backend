@@ -5,6 +5,7 @@ import (
 	"collector-backend/util"
 	"encoding/json"
 	"strconv"
+	"sync"
 	"time"
 
 	client "github.com/influxdata/influxdb1-client"
@@ -13,11 +14,11 @@ import (
 )
 
 type ServerCollectReturn struct {
-	InfluxPointChannel chan client.Point
+	InfluxPointChannel chan models.MyPoint
 	SqlQueryChannel    chan models.SqlQuery
 }
 
-func NewServerCollectReturn(pointChannel chan client.Point, SqlQueryChannel chan models.SqlQuery) *ServerCollectReturn {
+func NewServerCollectReturn(pointChannel chan models.MyPoint, SqlQueryChannel chan models.SqlQuery) *ServerCollectReturn {
 	return &ServerCollectReturn{
 		InfluxPointChannel: pointChannel,
 		SqlQueryChannel:    SqlQueryChannel,
@@ -29,6 +30,7 @@ func (scr *ServerCollectReturn) HandleCollectReturn(data string) error {
 	err := json.Unmarshal([]byte(data), &s)
 	util.FailOnError(err, "无法解析JSON数据")
 
+	wg := sync.WaitGroup{}
 	// power reading
 	p := client.Point{
 		Measurement: "server_power",
@@ -43,7 +45,11 @@ func (scr *ServerCollectReturn) HandleCollectReturn(data string) error {
 			"value": float64(s.PowerReading),
 		},
 	}
-	scr.InfluxPointChannel <- p
+	wg.Add(1)
+	scr.InfluxPointChannel <- models.MyPoint{
+		Wg:    &wg,
+		Point: p,
+	}
 
 	// power status
 	if s.PowerStatus != "" {
@@ -58,6 +64,7 @@ func (scr *ServerCollectReturn) HandleCollectReturn(data string) error {
 			scr.SqlQueryChannel <- sql_query
 		}
 	}
+	wg.Wait()
 
 	return nil
 }

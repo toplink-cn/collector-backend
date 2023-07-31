@@ -23,9 +23,10 @@ import (
 )
 
 const (
-	PointChanCap    int   = 1000
-	SqlQueryChanCap int   = 1000
-	PoolCap         int32 = 100
+	PointChanCap        int   = 1000
+	SqlQueryChanCap     int   = 1000
+	NotificationChanCap int   = 1000
+	PoolCap             int32 = 100
 )
 
 type Connection struct {
@@ -72,17 +73,21 @@ func NewConnectionWithTLS(config Config) (Connection, error) {
 }
 
 type Controller struct {
-	Channel                *amqp.Channel
-	Queue                  amqp.Queue
-	InfluxPointChannel     chan client.Point
-	InfluxDbSwitch         bool
-	InfluxDbResetTimer     *time.Timer
-	SqlQueryChannel        chan models.SqlQuery
-	SqlQuerySwitch         bool
-	SqlQueryResetTimer     *time.Timer
-	Pool                   gopool.Pool
-	LastInfluxPointChanLen int
-	LastSqlQueryChanLen    int
+	Channel                 *amqp.Channel
+	Queue                   amqp.Queue
+	NotifyChannel           *amqp.Channel
+	NotifyQueue             amqp.Queue
+	InfluxPointChannel      chan models.MyPoint
+	InfluxDbSwitch          bool
+	InfluxDbResetTimer      *time.Timer
+	SqlQueryChannel         chan models.SqlQuery
+	NotificationChannel     chan models.Notification
+	SqlQuerySwitch          bool
+	SqlQueryResetTimer      *time.Timer
+	Pool                    gopool.Pool
+	LastInfluxPointChanLen  int
+	LastSqlQueryChanLen     int
+	LastNotificationChanLen int
 }
 
 // func init() {
@@ -91,11 +96,12 @@ type Controller struct {
 
 func NewCtrl() *Controller {
 	return &Controller{
-		InfluxPointChannel: make(chan client.Point, PointChanCap),
-		SqlQueryChannel:    make(chan models.SqlQuery, SqlQueryChanCap),
-		Pool:               gopool.NewPool("collector-handler", PoolCap, gopool.NewConfig()),
-		InfluxDbResetTimer: time.NewTimer(10 * time.Second),
-		SqlQueryResetTimer: time.NewTimer(10 * time.Second),
+		InfluxPointChannel:  make(chan models.MyPoint, PointChanCap),
+		SqlQueryChannel:     make(chan models.SqlQuery, SqlQueryChanCap),
+		NotificationChannel: make(chan models.Notification, NotificationChanCap),
+		Pool:                gopool.NewPool("collector-handler", PoolCap, gopool.NewConfig()),
+		InfluxDbResetTimer:  time.NewTimer(10 * time.Second),
+		SqlQueryResetTimer:  time.NewTimer(10 * time.Second),
 	}
 }
 
@@ -180,7 +186,9 @@ func (ctrl *Controller) ListenQueue() {
 		ctrl.Pool.Go(func() {
 			switch msg.Type {
 			case "switch":
-				services.RegisterCollectReturn(switch_collect_return.NewSwitchCollectReturn(ctrl.InfluxPointChannel, ctrl.SqlQueryChannel))
+				switchCollectReturn := switch_collect_return.NewSwitchCollectReturn(ctrl.InfluxPointChannel, ctrl.SqlQueryChannel)
+				switchCollectReturn.NotificationChannel = ctrl.NotificationChannel
+				services.RegisterCollectReturn(switchCollectReturn)
 				services.CollectReturn().HandleCollectReturn(msg.Data)
 			case "server":
 				services.RegisterCollectReturn(server_collect_return.NewServerCollectReturn(ctrl.InfluxPointChannel, ctrl.SqlQueryChannel))
@@ -261,7 +269,9 @@ func (ctrl *Controller) ListenInfluxChannel() {
 			c := db.GetInfluxDbConnection()
 			points := []client.Point{}
 			for i := 0; i < len; i++ {
-				points = append(points, <-ctrl.InfluxPointChannel)
+				myPoint := <-ctrl.InfluxPointChannel
+				points = append(points, myPoint.Point)
+				myPoint.Wg.Done()
 			}
 			bp := client.BatchPoints{
 				Points:   points,
@@ -327,6 +337,27 @@ func (ctrl *Controller) ListenSqlQueryChannel() {
 			time.Sleep(1 * time.Second)
 			continue
 		}
+	}
+}
+
+func (ctrl *Controller) ListenNotificationChannel() {
+	for {
+		len := len(ctrl.NotificationChannel)
+
+		if len == 0 {
+			time.Sleep(1 * time.Second)
+			continue
+		}
+
+		notification := <-ctrl.NotificationChannel
+
+		notifyData, err := json.Marshal(notification)
+		if err != nil {
+			fmt.Printf("无法编码为JSON格式: %v", err)
+		}
+		notifyMsg := models.Msg{Type: "notification", Time: time.Now().Unix(), Data: string(notifyData)}
+		PublishMsg(ctrl.NotifyChannel, ctrl.NotifyQueue, notifyMsg)
+		fmt.Println("push msg to notify queue")
 	}
 }
 
