@@ -75,7 +75,7 @@ func (scr *SwitchCollectReturn) HandleCollectReturn(data string) error {
 
 				var diffVal float64
 				if lastVal == curVal {
-					diffVal = lastVal
+					diffVal = 0
 				} else if curVal > lastVal {
 					diffVal = curVal - lastVal
 				} else {
