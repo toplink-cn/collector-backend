@@ -82,6 +82,8 @@ func (scr *SwitchCollectReturn) HandleCollectReturn(data string) error {
 					diffVal = curVal
 				}
 
+				fmt.Printf("Get port flow last: %v, cur: %v, diff: %v \n", lastVal, curVal, diffVal)
+
 				p1 := client.Point{
 					Measurement: "flow_total",
 					Tags: map[string]string{
