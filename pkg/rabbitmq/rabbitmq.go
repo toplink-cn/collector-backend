@@ -389,6 +389,6 @@ func PublishMsg(ch *amqp.Channel, q amqp.Queue, msg models.Msg) error {
 		return err
 	}
 
-	fmt.Println("消息已发送到队列！")
+	// fmt.Println("消息已发送到队列！")
 	return nil
 }

@@ -79,7 +79,7 @@ func (scr *SwitchCollectReturn) HandleCollectReturn(data string) error {
 				} else if curVal > lastVal {
 					diffVal = curVal - lastVal
 				} else {
-					diffVal = 0
+					diffVal = curVal
 				}
 
 				p1 := client.Point{
