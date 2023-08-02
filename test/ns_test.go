@@ -18,7 +18,7 @@ import (
 )
 
 func TestWritePoint(t *testing.T) {
-	c := database.GetInfluxDbConnection()
+	c := database.NewInfluxDBConnection().GetClient()
 
 	points := []client.Point{}
 
@@ -92,7 +92,7 @@ func TestData(t *testing.T) {
 	err = json.Unmarshal(content, &ns)
 	util.FailOnError(err, "无法解析JSON")
 
-	c := database.GetInfluxDbConnection()
+	c := database.NewInfluxDBConnection().GetClient()
 
 	fmt.Println("start add points")
 	points := []client.Point{}

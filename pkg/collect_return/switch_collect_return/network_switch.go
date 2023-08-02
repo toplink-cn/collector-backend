@@ -82,8 +82,6 @@ func (scr *SwitchCollectReturn) HandleCollectReturn(data string) error {
 					diffVal = curVal
 				}
 
-				fmt.Printf("Get port flow last: %v, cur: %v, diff: %v \n", lastVal, curVal, diffVal)
-
 				p1 := client.Point{
 					Measurement: "flow_total",
 					Tags: map[string]string{
@@ -138,19 +136,20 @@ func (scr *SwitchCollectReturn) HandleCollectReturn(data string) error {
 	}
 
 	wg.Wait()
-	fmt.Println("wg wait done")
+	// fmt.Println("wg wait done")
 	scr.NotificationChannel <- models.Notification{
 		Type:  "switch",
 		RelID: ns.ID,
 		Time:  time.Now(),
 	}
-	fmt.Println("push into notification channel")
+	// fmt.Println("push into notification channel")
 
 	return nil
 }
 
 func (scr *SwitchCollectReturn) getLastPortFlow(switchId uint64, portId uint64, direction string) (float64, error) {
-	c := db.GetInfluxDbConnection()
+	conn := db.NewInfluxDBConnection()
+	c := conn.GetClient()
 
 	query := fmt.Sprintf("SELECT * FROM flow where switch_id='%s' and port_id='%s' and type='%s' order by time desc LIMIT 1", strconv.Itoa(int(switchId)), strconv.Itoa(int(portId)), direction)
 	q := client.Query{
@@ -160,10 +159,12 @@ func (scr *SwitchCollectReturn) getLastPortFlow(switchId uint64, portId uint64, 
 
 	response, err := c.Query(q)
 	if err != nil {
+		conn.CloseClient(c)
 		return 0, err
 	}
 
 	if response.Error() != nil {
+		conn.CloseClient(c)
 		return 0, response.Error()
 	}
 
@@ -185,6 +186,6 @@ func (scr *SwitchCollectReturn) getLastPortFlow(switchId uint64, portId uint64, 
 	} else {
 		fmt.Println("Invalid number format:", v)
 	}
-
+	conn.CloseClient(c)
 	return val, nil
 }

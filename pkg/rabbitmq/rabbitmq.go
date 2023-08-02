@@ -265,8 +265,8 @@ func (ctrl *Controller) ListenInfluxChannel() {
 
 		if ctrl.InfluxDbSwitch || len >= PointChanCap {
 			// write
-			fmt.Println("start write points")
-			c := db.GetInfluxDbConnection()
+			// fmt.Println("start write points")
+
 			points := []client.Point{}
 			for i := 0; i < len; i++ {
 				myPoint := <-ctrl.InfluxPointChannel
@@ -277,7 +277,8 @@ func (ctrl *Controller) ListenInfluxChannel() {
 				Points:   points,
 				Database: "dcim",
 			}
-
+			conn := db.NewInfluxDBConnection()
+			c := conn.GetClient()
 			r, err := c.Write(bp)
 			if err != nil {
 				fmt.Printf("unexpected error.  expected %v, actual %v", nil, err)
@@ -287,6 +288,7 @@ func (ctrl *Controller) ListenInfluxChannel() {
 			}
 			fmt.Println("write points done")
 			ctrl.LastInfluxPointChanLen = 0
+			conn.CloseClient(c)
 		} else {
 			ctrl.LastInfluxPointChanLen = len
 			time.Sleep(1 * time.Second)
@@ -312,7 +314,7 @@ func (ctrl *Controller) ListenSqlQueryChannel() {
 
 		if ctrl.SqlQuerySwitch || len >= PointChanCap {
 			//write
-			fmt.Println("start write sql")
+			// fmt.Println("start write sql")
 			mysql_conn := db.GetMysqlConnection()
 
 			tx, err := mysql_conn.Begin()
@@ -357,7 +359,7 @@ func (ctrl *Controller) ListenNotificationChannel() {
 		}
 		notifyMsg := models.Msg{Type: "notification", Time: time.Now().Unix(), Data: string(notifyData)}
 		PublishMsg(ctrl.NotifyChannel, ctrl.NotifyQueue, notifyMsg)
-		fmt.Println("push msg to notify queue")
+		// fmt.Println("push msg to notify queue")
 	}
 }
 
