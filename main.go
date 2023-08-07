@@ -17,13 +17,6 @@ func main() {
 }
 
 func run() {
-	// 访问环境变量
-	// amqpUsername := os.Getenv("RABBITMQ_USERNAME")
-	// amqpPassowd := os.Getenv("RABBITMQ_PASSWORD")
-	// amqpUrl := os.Getenv("RABBITMQ_URL")
-
-	// url := "amqp://" + amqpUsername + ":" + amqpPassowd + "@" + amqpUrl
-	// url := "amqps://" + amqpUsername + ":" + amqpPassowwd + "@" + amqpUrl
 	url := "amqp://guest:guest@rabbitmq:5672/"
 	log.Println("amqp url: ", url)
 
