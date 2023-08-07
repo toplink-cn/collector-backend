@@ -52,20 +52,3 @@ func (ic InfluxDBConnection) GetClient() *client.Client {
 func (ic InfluxDBConnection) CloseClient(c *client.Client) {
 	ic.InfluxDBClientChan <- c
 }
-
-// func GetInfluxDbConnection() *client.Client {
-// 	sockUrl := "/app/run/influxdb.sock"
-// 	u, err := url.Parse("http://localhost")
-// 	if err != nil {
-// 		fmt.Printf("unexpected error.  expected %v, actual %v \n", nil, err)
-// 	}
-// 	config := client.Config{
-// 		URL:        *u,
-// 		UnixSocket: sockUrl,
-// 	}
-// 	c, err := client.NewClient(config)
-// 	if err != nil {
-// 		fmt.Printf("unexpected error.  expected %v, actual %v \n", nil, err)
-// 	}
-// 	return c
-// }
