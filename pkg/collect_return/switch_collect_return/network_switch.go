@@ -3,6 +3,7 @@ package switch_collect_return
 import (
 	"collector-backend/db"
 	"collector-backend/models"
+	"collector-backend/pkg/logger"
 	"collector-backend/util"
 	"encoding/json"
 	"fmt"
@@ -27,7 +28,6 @@ func NewSwitchCollectReturn(pointChannel chan models.MyPoint, SqlQueryChannel ch
 }
 
 func (scr *SwitchCollectReturn) HandleCollectReturn(data string) error {
-	fmt.Println(data)
 	var ns models.NetworkSwitch
 	err := json.Unmarshal([]byte(data), &ns)
 	util.FailOnError(err, "无法解析JSON数据")
@@ -70,8 +70,11 @@ func (scr *SwitchCollectReturn) HandleCollectReturn(data string) error {
 			_val := pdu.Value
 			_, ok := directions[pdu.Key]
 			if ok {
+				logger.Println("ns port key:", ns.ID, port.ID, pdu.Key)
 				lastVal, _ := scr.getLastPortFlow(ns.ID, port.ID, pdu.Key)
 				curVal := _val.(float64)
+
+				logger.Println("lastVal: %f, curVal: %f \n", lastVal, curVal)
 
 				var diffVal float64
 				if lastVal == curVal {
