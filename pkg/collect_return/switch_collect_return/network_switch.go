@@ -178,10 +178,11 @@ func (scr *SwitchCollectReturn) getLastPortFlow(switchId uint64, portId uint64, 
 		}
 	}
 	var val float64
-	v, ok := vals["value"].(json.Number)
+	_, ok := vals["value"].(json.Number)
 	if !ok {
 		return 0, nil
 	}
+	v := vals["value"].(json.Number)
 	if intValue, err := v.Int64(); err == nil {
 		// 处理整数
 		val = float64(intValue)
