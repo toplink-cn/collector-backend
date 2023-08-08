@@ -3,7 +3,6 @@ package switch_collect_return
 import (
 	"collector-backend/db"
 	"collector-backend/models"
-	"collector-backend/pkg/logger"
 	"collector-backend/util"
 	"encoding/json"
 	"fmt"
@@ -70,11 +69,8 @@ func (scr *SwitchCollectReturn) HandleCollectReturn(data string) error {
 			_val := pdu.Value
 			_, ok := directions[pdu.Key]
 			if ok {
-				logger.Println("ns port key:", ns.ID, port.ID, pdu.Key)
 				lastVal, _ := scr.getLastPortFlow(ns.ID, port.ID, pdu.Key)
 				curVal := _val.(float64)
-
-				logger.Printf("lastVal: %f, curVal: %f \n", lastVal, curVal)
 
 				var diffVal float64
 				if lastVal == curVal {

@@ -6,6 +6,7 @@ import (
 	"collector-backend/pkg/collect_return/server_collect_return"
 	"collector-backend/pkg/collect_return/switch_collect_return"
 	"collector-backend/pkg/collect_return/system_collect_return"
+	"collector-backend/pkg/logger"
 	"collector-backend/services"
 	"collector-backend/util"
 	"crypto/tls"
@@ -251,7 +252,7 @@ func (ctrl *Controller) RunTimer() {
 func (ctrl *Controller) ListenInfluxChannel() {
 	for {
 		len := len(ctrl.InfluxPointChannel)
-		// fmt.Printf("%v points chan len: %d, InfluxDbSwitch: %v  \n", time.Now().Format("2016-01-02 15:04:05"), len, ctrl.InfluxDbSwitch)
+		logger.Printf("%v points chan len: %d, InfluxDbSwitch: %v  \n", time.Now().Format("2016-01-02 15:04:05"), len, ctrl.InfluxDbSwitch)
 
 		if len == 0 {
 			time.Sleep(1 * time.Second)
