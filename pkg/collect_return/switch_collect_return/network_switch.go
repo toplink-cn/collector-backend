@@ -178,22 +178,47 @@ func (scr *SwitchCollectReturn) getLastPortFlow(switchId uint64, portId uint64, 
 		}
 	}
 	var val float64
-	_, ok := vals["value"].(json.Number)
-	if !ok {
-		logger.Printf("ns: %d, ns_p_id: %d, direction: %s, value is not json number \n", switchId, portId, direction)
+	v, ok := vals["value"].(json.Number)
+	if ok {
+		if intValue, err := v.Int64(); err == nil {
+			// 处理整数
+			val = float64(intValue)
+		} else if floatValue, err := v.Float64(); err == nil {
+			// 处理浮点数
+			val = float64(floatValue)
+		} else {
+			fmt.Println("Invalid number format:", v)
+		}
 		conn.CloseClient(c)
-		return 0, nil
+		return val, nil
 	}
-	v := vals["value"].(json.Number)
-	if intValue, err := v.Int64(); err == nil {
-		// 处理整数
-		val = float64(intValue)
-	} else if floatValue, err := v.Float64(); err == nil {
-		// 处理浮点数
-		val = float64(floatValue)
-	} else {
-		fmt.Println("Invalid number format:", v)
+	f, ok := vals["value"].(float64)
+	if ok {
+		val = f
+		conn.CloseClient(c)
+		return val, nil
 	}
+	i, ok := vals["value"].(int)
+	if ok {
+		val = float64(i)
+		conn.CloseClient(c)
+		return val, nil
+	}
+	s, ok := vals["value"].(string)
+	if ok {
+		i, err := strconv.Atoi(s)
+		if err != nil {
+			val = float64(i)
+		}
+		conn.CloseClient(c)
+		return val, nil
+	}
+	// else {
+	// 	logger.Printf("ns: %d, ns_p_id: %d, direction: %s, value is not json number \n", switchId, portId, direction)
+	// 	conn.CloseClient(c)
+	// 	return 0, nil
+	// }
+
 	conn.CloseClient(c)
 	return val, nil
 }
