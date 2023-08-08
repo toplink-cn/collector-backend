@@ -180,6 +180,8 @@ func (scr *SwitchCollectReturn) getLastPortFlow(switchId uint64, portId uint64, 
 	var val float64
 	_, ok := vals["value"].(json.Number)
 	if !ok {
+		logger.Printf("ns: %d, ns_p_id: %d, direction: %s, value is not json number \n", switchId, portId, direction)
+		conn.CloseClient(c)
 		return 0, nil
 	}
 	v := vals["value"].(json.Number)
