@@ -74,7 +74,7 @@ func (scr *SwitchCollectReturn) HandleCollectReturn(data string) error {
 				lastVal, _ := scr.getLastPortFlow(ns.ID, port.ID, pdu.Key)
 				curVal := _val.(float64)
 
-				logger.Println("lastVal: %f, curVal: %f \n", lastVal, curVal)
+				logger.Printf("lastVal: %f, curVal: %f \n", lastVal, curVal)
 
 				var diffVal float64
 				if lastVal == curVal {
