@@ -287,7 +287,7 @@ func (ctrl *Controller) ListenInfluxChannel() {
 			if r != nil {
 				fmt.Printf("unexpected response. expected %v, actual %v", nil, r)
 			}
-			fmt.Println("write points done", r)
+			logger.Println("write points done", r)
 			ctrl.LastInfluxPointChanLen = 0
 			conn.CloseClient(c)
 		} else {
