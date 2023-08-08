@@ -280,7 +280,7 @@ func (ctrl *Controller) ListenInfluxChannel() {
 				Points:   points,
 				Database: "dcim",
 			}
-			conn := db.NewInfluxDBConnection()
+			conn := db.NewInfluxDBWriteConnection()
 			c := conn.GetClient()
 			r, err := c.Write(bp)
 			if err != nil {

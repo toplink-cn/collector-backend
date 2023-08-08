@@ -147,7 +147,7 @@ func (scr *SwitchCollectReturn) HandleCollectReturn(data string) error {
 }
 
 func (scr *SwitchCollectReturn) getLastPortFlow(switchId uint64, portId uint64, direction string) (float64, error) {
-	conn := db.NewInfluxDBConnection()
+	conn := db.NewInfluxDBReadConnection()
 	c := conn.GetClient()
 
 	query := fmt.Sprintf("SELECT * FROM flow where switch_id='%s' and port_id='%s' and type='%s' order by time desc LIMIT 1", strconv.Itoa(int(switchId)), strconv.Itoa(int(portId)), direction)
