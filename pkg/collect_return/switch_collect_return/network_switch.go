@@ -27,7 +27,7 @@ func NewSwitchCollectReturn(pointChannel chan models.MyPoint, SqlQueryChannel ch
 }
 
 func (scr *SwitchCollectReturn) HandleCollectReturn(data string) error {
-	// fmt.Println(data)
+	fmt.Println(data)
 	var ns models.NetworkSwitch
 	err := json.Unmarshal([]byte(data), &ns)
 	util.FailOnError(err, "无法解析JSON数据")
