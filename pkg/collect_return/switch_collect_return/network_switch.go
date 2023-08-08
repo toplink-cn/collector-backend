@@ -3,7 +3,6 @@ package switch_collect_return
 import (
 	"collector-backend/db"
 	"collector-backend/models"
-	"collector-backend/pkg/logger"
 	"collector-backend/util"
 	"encoding/json"
 	"fmt"
@@ -94,7 +93,6 @@ func (scr *SwitchCollectReturn) HandleCollectReturn(data string) error {
 						"value": diffVal,
 					},
 				}
-				logger.Println("flow_total", p1)
 				wg.Add(1)
 				scr.InfluxPointChannel <- models.MyPoint{
 					Wg:    &wg,
@@ -113,7 +111,6 @@ func (scr *SwitchCollectReturn) HandleCollectReturn(data string) error {
 						"value": _val.(float64),
 					},
 				}
-				logger.Println("flow", p2)
 				wg.Add(1)
 				scr.InfluxPointChannel <- models.MyPoint{
 					Wg:    &wg,
