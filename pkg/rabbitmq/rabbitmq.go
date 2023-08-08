@@ -252,7 +252,7 @@ func (ctrl *Controller) RunTimer() {
 func (ctrl *Controller) ListenInfluxChannel() {
 	for {
 		len := len(ctrl.InfluxPointChannel)
-		logger.Printf("%v points chan len: %d, InfluxDbSwitch: %v  \n", time.Now().Format("2016-01-02 15:04:05"), len, ctrl.InfluxDbSwitch)
+		// logger.Printf("%v points chan len: %d, InfluxDbSwitch: %v  \n", time.Now().Format("2016-01-02 15:04:05"), len, ctrl.InfluxDbSwitch)
 
 		if len == 0 {
 			time.Sleep(1 * time.Second)
@@ -271,7 +271,7 @@ func (ctrl *Controller) ListenInfluxChannel() {
 			points := []client.Point{}
 			for i := 0; i < len; i++ {
 				myPoint := <-ctrl.InfluxPointChannel
-				logger.Println("Point:", myPoint.Point)
+				// logger.Println("Point:", myPoint.Point)
 				points = append(points, myPoint.Point)
 				myPoint.Wg.Done()
 			}
