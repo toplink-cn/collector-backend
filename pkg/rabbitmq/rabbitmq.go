@@ -271,9 +271,11 @@ func (ctrl *Controller) ListenInfluxChannel() {
 			points := []client.Point{}
 			for i := 0; i < len; i++ {
 				myPoint := <-ctrl.InfluxPointChannel
+				logger.Println("Point:", myPoint.Point)
 				points = append(points, myPoint.Point)
 				myPoint.Wg.Done()
 			}
+
 			bp := client.BatchPoints{
 				Points:   points,
 				Database: "dcim",
