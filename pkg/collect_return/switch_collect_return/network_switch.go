@@ -6,6 +6,7 @@ import (
 	"collector-backend/util"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strconv"
 	"sync"
 	"time"
@@ -175,47 +176,31 @@ func (scr *SwitchCollectReturn) getLastPortFlow(switchId uint64, portId uint64, 
 		}
 	}
 	var val float64
-	v, ok := vals["value"].(json.Number)
-	if ok {
-		if intValue, err := v.Int64(); err == nil {
-			// 处理整数
-			val = float64(intValue)
-		} else if floatValue, err := v.Float64(); err == nil {
-			// 处理浮点数
-			val = float64(floatValue)
-		} else {
-			fmt.Println("Invalid number format:", v)
+	v := reflect.ValueOf(vals["value"])
+	switch typeStr := v.Type().String(); typeStr {
+	case "json.Number":
+		v, ok := vals["value"].(json.Number)
+		if ok {
+			if intValue, err := v.Int64(); err == nil {
+				val = float64(intValue)
+			} else if floatValue, err := v.Float64(); err == nil {
+				val = float64(floatValue)
+			} else {
+				fmt.Println("Invalid number format:", v)
+			}
 		}
-		conn.CloseClient(c)
-		return val, nil
-	}
-	f, ok := vals["value"].(float64)
-	if ok {
-		val = f
-		conn.CloseClient(c)
-		return val, nil
-	}
-	i, ok := vals["value"].(int)
-	if ok {
-		val = float64(i)
-		conn.CloseClient(c)
-		return val, nil
-	}
-	s, ok := vals["value"].(string)
-	if ok {
-		i, err := strconv.Atoi(s)
+	case "string":
+		i, err := strconv.Atoi(v.String())
 		if err != nil {
 			val = float64(i)
 		}
-		conn.CloseClient(c)
-		return val, nil
+	case "int", "int8", "int16", "int32", "int64":
+		val = float64(v.Float())
+	case "float", "float32", "float64":
+		val = float64(v.Float())
+	default:
+		fmt.Println("值的类型不在预期范围内")
 	}
-	// else {
-	// 	logger.Printf("ns: %d, ns_p_id: %d, direction: %s, value is not json number \n", switchId, portId, direction)
-	// 	conn.CloseClient(c)
-	// 	return 0, nil
-	// }
-
 	conn.CloseClient(c)
 	return val, nil
 }
