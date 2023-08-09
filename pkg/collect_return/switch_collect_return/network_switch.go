@@ -199,7 +199,7 @@ func (scr *SwitchCollectReturn) getLastPortFlow(switchId uint64, portId uint64, 
 	case "float", "float32", "float64":
 		val = float64(v.Float())
 	default:
-		fmt.Println("值的类型不在预期范围内")
+		fmt.Println("unexcepted value type")
 	}
 	conn.CloseClient(c)
 	return val, nil
