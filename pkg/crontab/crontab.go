@@ -28,12 +28,12 @@ func init() {
 }
 
 type Crontab struct {
-	SqlQueryChannel chan models.SqlQuery
+	SqlQueryChannel chan *models.SqlQuery
 	Channel         *amqp.Channel
 	Queue           amqp.Queue
 }
 
-func NewCrontab(SqlQueryChannel chan models.SqlQuery, ch *amqp.Channel, q amqp.Queue) *Crontab {
+func NewCrontab(SqlQueryChannel chan *models.SqlQuery, ch *amqp.Channel, q amqp.Queue) *Crontab {
 	return &Crontab{
 		SqlQueryChannel: SqlQueryChannel,
 		Channel:         ch,

@@ -17,12 +17,12 @@ import (
 )
 
 type SwitchCollectReturn struct {
-	InfluxPointChannel  chan models.MyPoint
-	SqlQueryChannel     chan models.SqlQuery
-	NotificationChannel chan models.Notification
+	InfluxPointChannel  chan *models.MyPoint
+	SqlQueryChannel     chan *models.SqlQuery
+	NotificationChannel chan *models.Notification
 }
 
-func NewSwitchCollectReturn(pointChannel chan models.MyPoint, SqlQueryChannel chan models.SqlQuery) *SwitchCollectReturn {
+func NewSwitchCollectReturn(pointChannel chan *models.MyPoint, SqlQueryChannel chan *models.SqlQuery) *SwitchCollectReturn {
 	return &SwitchCollectReturn{
 		InfluxPointChannel: pointChannel,
 		SqlQueryChannel:    SqlQueryChannel,
@@ -51,7 +51,7 @@ func (scr *SwitchCollectReturn) HandleCollectReturn(data string) error {
 			},
 		}
 		wg.Add(1)
-		scr.InfluxPointChannel <- models.MyPoint{
+		scr.InfluxPointChannel <- &models.MyPoint{
 			Wg:    &wg,
 			Point: p,
 		}
@@ -97,7 +97,7 @@ func (scr *SwitchCollectReturn) HandleCollectReturn(data string) error {
 					},
 				}
 				wg.Add(1)
-				scr.InfluxPointChannel <- models.MyPoint{
+				scr.InfluxPointChannel <- &models.MyPoint{
 					Wg:    &wg,
 					Point: p1,
 				}
@@ -115,7 +115,7 @@ func (scr *SwitchCollectReturn) HandleCollectReturn(data string) error {
 					},
 				}
 				wg.Add(1)
-				scr.InfluxPointChannel <- models.MyPoint{
+				scr.InfluxPointChannel <- &models.MyPoint{
 					Wg:    &wg,
 					Point: p2,
 				}
@@ -134,12 +134,12 @@ func (scr *SwitchCollectReturn) HandleCollectReturn(data string) error {
 		}
 		sql_query.Query += " where id = ?"
 		sql_query.Args = append(sql_query.Args, port.ID)
-		scr.SqlQueryChannel <- sql_query
+		scr.SqlQueryChannel <- &sql_query
 	}
 
 	wg.Wait()
 	// fmt.Println("wg wait done")
-	scr.NotificationChannel <- models.Notification{
+	scr.NotificationChannel <- &models.Notification{
 		Type:  "switch",
 		RelID: ns.ID,
 		Time:  time.Now(),

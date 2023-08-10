@@ -24,9 +24,9 @@ import (
 )
 
 const (
-	PointChanCap        int   = 20000
-	SqlQueryChanCap     int   = 20000
-	NotificationChanCap int   = 20000
+	PointChanCap        int   = 10000
+	SqlQueryChanCap     int   = 10000
+	NotificationChanCap int   = 10000
 	PoolCap             int32 = 100
 )
 
@@ -74,21 +74,25 @@ func NewConnectionWithTLS(config Config) (Connection, error) {
 }
 
 type Controller struct {
-	Channel                 *amqp.Channel
-	Queue                   amqp.Queue
-	NotifyChannel           *amqp.Channel
-	NotifyQueue             amqp.Queue
-	InfluxPointChannel      chan models.MyPoint
-	InfluxDbSwitch          bool
-	InfluxDbResetTimer      *time.Timer
-	SqlQueryChannel         chan models.SqlQuery
-	NotificationChannel     chan models.Notification
-	SqlQuerySwitch          bool
-	SqlQueryResetTimer      *time.Timer
-	Pool                    gopool.Pool
-	LastInfluxPointChanLen  int
-	LastSqlQueryChanLen     int
-	LastNotificationChanLen int
+	Channel                     *amqp.Channel
+	Queue                       amqp.Queue
+	NotifyChannel               *amqp.Channel
+	NotifyQueue                 amqp.Queue
+	InfluxPointChannel          chan *models.MyPoint
+	InfluxPointWriteChannel     chan *models.MyPoint
+	InfluxDbSwitch              bool
+	InfluxDbWriteSwitch         bool
+	InfluxDbResetTimer          *time.Timer
+	InfluxDbWriteResetTimer     *time.Timer
+	SqlQueryChannel             chan *models.SqlQuery
+	NotificationChannel         chan *models.Notification
+	SqlQuerySwitch              bool
+	SqlQueryResetTimer          *time.Timer
+	Pool                        gopool.Pool
+	LastInfluxPointChanLen      int
+	LastInfluxPointWriteChanLen int
+	LastSqlQueryChanLen         int
+	LastNotificationChanLen     int
 }
 
 // func init() {
@@ -97,12 +101,14 @@ type Controller struct {
 
 func NewCtrl() *Controller {
 	return &Controller{
-		InfluxPointChannel:  make(chan models.MyPoint, PointChanCap),
-		SqlQueryChannel:     make(chan models.SqlQuery, SqlQueryChanCap),
-		NotificationChannel: make(chan models.Notification, NotificationChanCap),
-		Pool:                gopool.NewPool("collector-handler", PoolCap, gopool.NewConfig()),
-		InfluxDbResetTimer:  time.NewTimer(10 * time.Second),
-		SqlQueryResetTimer:  time.NewTimer(10 * time.Second),
+		InfluxPointChannel:      make(chan *models.MyPoint, PointChanCap),
+		InfluxPointWriteChannel: make(chan *models.MyPoint, PointChanCap),
+		SqlQueryChannel:         make(chan *models.SqlQuery, SqlQueryChanCap),
+		NotificationChannel:     make(chan *models.Notification, NotificationChanCap),
+		Pool:                    gopool.NewPool("collector-handler", PoolCap, gopool.NewConfig()),
+		InfluxDbResetTimer:      time.NewTimer(10 * time.Second),
+		InfluxDbWriteResetTimer: time.NewTimer(10 * time.Second),
+		SqlQueryResetTimer:      time.NewTimer(10 * time.Second),
 	}
 }
 
@@ -226,6 +232,28 @@ func (ctrl *Controller) RunTimer() {
 		}
 	}(ctrl)
 	go func(ctrl *Controller) {
+		resetTimer := ctrl.InfluxDbWriteResetTimer
+		ticker := time.NewTicker(1 * time.Second)
+		second := 0
+		for {
+			select {
+			case <-ticker.C:
+				second++
+				// fmt.Println("InfluxDbWriteSwitch current second:", second)
+				ctrl.InfluxDbWriteSwitch = false
+				if second%10 == 0 {
+					second = 0
+					resetTimer.Reset(10 * time.Second)
+					ctrl.InfluxDbWriteSwitch = true
+				}
+			case <-resetTimer.C:
+				second = 0
+				resetTimer.Reset(10 * time.Second)
+				ctrl.InfluxDbWriteSwitch = true
+			}
+		}
+	}(ctrl)
+	go func(ctrl *Controller) {
 		resetTimer := ctrl.SqlQueryResetTimer
 		ticker := time.NewTicker(1 * time.Second)
 		second := 0
@@ -252,7 +280,7 @@ func (ctrl *Controller) RunTimer() {
 func (ctrl *Controller) ListenInfluxChannel() {
 	for {
 		len := len(ctrl.InfluxPointChannel)
-		// logger.Printf("%v points chan len: %d, InfluxDbSwitch: %v  \n", time.Now().Format("2016-01-02 15:04:05"), len, ctrl.InfluxDbSwitch)
+		logger.Printf("%v points chan len: %d, InfluxDbSwitch: %v  \n", time.Now().Format("2006-01-02 15:04:05"), len, ctrl.InfluxDbSwitch)
 
 		if len == 0 {
 			time.Sleep(1 * time.Second)
@@ -265,13 +293,41 @@ func (ctrl *Controller) ListenInfluxChannel() {
 		}
 
 		if ctrl.InfluxDbSwitch || len >= PointChanCap {
-			// write
-			// fmt.Println("start write points")
+
+			var tmp *models.MyPoint
+			for i := 0; i < len; i++ {
+				tmp = <-ctrl.InfluxPointChannel
+				ctrl.InfluxPointWriteChannel <- tmp
+			}
+			logger.Println("transferData to write chan")
+			ctrl.LastInfluxPointChanLen = 0
+		} else {
+			ctrl.LastInfluxPointChanLen = len
+			time.Sleep(1 * time.Second)
+			continue
+		}
+	}
+}
+
+func (ctrl *Controller) ListenInfluxWriteChannel() {
+	for {
+		len := len(ctrl.InfluxPointWriteChannel)
+		logger.Printf("%v points chan len: %d, InfluxDbWriteSwitch: %v  \n", time.Now().Format("2006-01-02 15:04:05"), len, ctrl.InfluxDbSwitch)
+		if len == 0 {
+			time.Sleep(1 * time.Second)
+			continue
+		}
+
+		if ctrl.LastInfluxPointWriteChanLen != len {
+			ctrl.InfluxDbWriteSwitch = false
+			ctrl.InfluxDbWriteResetTimer.Reset(10 * time.Second)
+		}
+
+		if ctrl.InfluxDbWriteSwitch || len >= PointChanCap {
 
 			points := []client.Point{}
 			for i := 0; i < len; i++ {
-				myPoint := <-ctrl.InfluxPointChannel
-				// logger.Println("Point:", myPoint.Point)
+				myPoint := <-ctrl.InfluxPointWriteChannel
 				points = append(points, myPoint.Point)
 				myPoint.Wg.Done()
 			}
@@ -290,10 +346,10 @@ func (ctrl *Controller) ListenInfluxChannel() {
 				fmt.Printf("unexpected response. expected %v, actual %v", nil, r)
 			}
 			logger.Println("write points done", r)
-			ctrl.LastInfluxPointChanLen = 0
+			ctrl.LastInfluxPointWriteChanLen = 0
 			conn.CloseClient(c)
 		} else {
-			ctrl.LastInfluxPointChanLen = len
+			ctrl.LastInfluxPointWriteChanLen = len
 			time.Sleep(1 * time.Second)
 			continue
 		}

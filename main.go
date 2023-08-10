@@ -34,6 +34,7 @@ func run() {
 
 	returnCtrl.RunTimer()
 	go returnCtrl.ListenInfluxChannel()
+	go returnCtrl.ListenInfluxWriteChannel()
 	go returnCtrl.ListenSqlQueryChannel()
 	go returnCtrl.ListenNotificationChannel()
 	returnCtrl.RunCtrl()

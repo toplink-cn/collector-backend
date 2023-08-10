@@ -14,11 +14,11 @@ import (
 )
 
 type ServerCollectReturn struct {
-	InfluxPointChannel chan models.MyPoint
-	SqlQueryChannel    chan models.SqlQuery
+	InfluxPointChannel chan *models.MyPoint
+	SqlQueryChannel    chan *models.SqlQuery
 }
 
-func NewServerCollectReturn(pointChannel chan models.MyPoint, SqlQueryChannel chan models.SqlQuery) *ServerCollectReturn {
+func NewServerCollectReturn(pointChannel chan *models.MyPoint, SqlQueryChannel chan *models.SqlQuery) *ServerCollectReturn {
 	return &ServerCollectReturn{
 		InfluxPointChannel: pointChannel,
 		SqlQueryChannel:    SqlQueryChannel,
@@ -46,7 +46,7 @@ func (scr *ServerCollectReturn) HandleCollectReturn(data string) error {
 		},
 	}
 	wg.Add(1)
-	scr.InfluxPointChannel <- models.MyPoint{
+	scr.InfluxPointChannel <- &models.MyPoint{
 		Wg:    &wg,
 		Point: p,
 	}
@@ -61,7 +61,7 @@ func (scr *ServerCollectReturn) HandleCollectReturn(data string) error {
 				Query: "UPDATE servers SET updated_at = ?, power_status = ? where id = ?",
 				Args:  []any{time.Now(), power_stats, s.ID},
 			}
-			scr.SqlQueryChannel <- sql_query
+			scr.SqlQueryChannel <- &sql_query
 		}
 	}
 	wg.Wait()

@@ -13,11 +13,11 @@ import (
 )
 
 type SystemCollectReturn struct {
-	InfluxPointChannel chan models.MyPoint
-	SqlQueryChannel    chan models.SqlQuery
+	InfluxPointChannel chan *models.MyPoint
+	SqlQueryChannel    chan *models.SqlQuery
 }
 
-func NewSystemCollectReturn(pointChannel chan models.MyPoint, SqlQueryChannel chan models.SqlQuery) *SystemCollectReturn {
+func NewSystemCollectReturn(pointChannel chan *models.MyPoint, SqlQueryChannel chan *models.SqlQuery) *SystemCollectReturn {
 	return &SystemCollectReturn{
 		InfluxPointChannel: pointChannel,
 		SqlQueryChannel:    SqlQueryChannel,
@@ -61,7 +61,7 @@ func (scr *SystemCollectReturn) HandleCollectReturn(data string) error {
 				}
 				// fmt.Println(p)
 				wg.Add(1)
-				scr.InfluxPointChannel <- models.MyPoint{
+				scr.InfluxPointChannel <- &models.MyPoint{
 					Wg:    &wg,
 					Point: p,
 				}
@@ -83,7 +83,7 @@ func (scr *SystemCollectReturn) HandleCollectReturn(data string) error {
 					}
 					// fmt.Println(p)
 					wg.Add(1)
-					scr.InfluxPointChannel <- models.MyPoint{
+					scr.InfluxPointChannel <- &models.MyPoint{
 						Wg:    &wg,
 						Point: p,
 					}
