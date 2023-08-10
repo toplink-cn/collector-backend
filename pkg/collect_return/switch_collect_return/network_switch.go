@@ -182,12 +182,14 @@ func (scr *SwitchCollectReturn) getLastPortFlow(switchId uint64, portId uint64, 
 	if !v.IsValid() {
 		errMsg := "value is invalid, query:" + query
 		logger.Println(errMsg)
+		conn.CloseClient(c)
 		return val, errors.New(errMsg)
 	}
 	if !v.CanInterface() {
 		fmt.Printf("if is %#+v (%v)\n", v.Interface(), v.Interface() == nil)
 		errMsg := "value cannot interface"
 		logger.Println(errMsg)
+		conn.CloseClient(c)
 		return val, errors.New(errMsg)
 	}
 	switch typeStr := v.Type().String(); typeStr {
