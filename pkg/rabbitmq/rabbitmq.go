@@ -261,10 +261,10 @@ func (ctrl *Controller) ListenInfluxChannel() {
 			continue
 		}
 
-		if ctrl.LastInfluxPointChanLen != len {
-			ctrl.InfluxDbSwitch = false
-			ctrl.InfluxDbResetTimer.Reset(10 * time.Second)
-		}
+		// if ctrl.LastInfluxPointChanLen != len {
+		// 	ctrl.InfluxDbSwitch = false
+		// 	ctrl.InfluxDbResetTimer.Reset(10 * time.Second)
+		// }
 
 		if ctrl.InfluxDbSwitch || len >= PointChanCap {
 			var tmp *models.MyPoint
