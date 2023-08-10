@@ -178,17 +178,18 @@ func (scr *SwitchCollectReturn) getLastPortFlow(switchId uint64, portId uint64, 
 		}
 	}
 	var val float64
-	v := reflect.ValueOf(vals["value"])
-	if ok := v.Field(0).IsNil(); !ok {
+	field := reflect.ValueOf(vals["value"]).Field(0)
+	if ok := field.IsNil(); !ok {
 		errMsg := "value is nil"
 		logger.Println(errMsg)
 		return val, errors.New(errMsg)
 	}
-	if ok := v.Field(0).IsZero(); !ok {
+	if ok := field.IsZero(); !ok {
 		errMsg := "value is zero"
 		logger.Println(errMsg)
 		return val, errors.New(errMsg)
 	}
+	v := reflect.ValueOf(vals["value"])
 	switch typeStr := v.Type().String(); typeStr {
 	case "json.Number":
 		v, ok := vals["value"].(json.Number)
