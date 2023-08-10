@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	PointChanCap    int = 1000
-	SqlQueryChanCap int = 1000
+	PointChanCap    int = 10000
+	SqlQueryChanCap int = 10000
 )
 
 var expression string
