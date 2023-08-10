@@ -27,7 +27,7 @@ const (
 	PointChanCap        int   = 10000
 	SqlQueryChanCap     int   = 10000
 	NotificationChanCap int   = 10000
-	PoolCap             int32 = 100
+	PoolCap             int32 = 101
 )
 
 type Connection struct {
@@ -267,7 +267,6 @@ func (ctrl *Controller) ListenInfluxChannel() {
 		}
 
 		if ctrl.InfluxDbSwitch || len >= PointChanCap {
-
 			var tmp *models.MyPoint
 			for i := 0; i < len; i++ {
 				tmp = <-ctrl.InfluxPointChannel
