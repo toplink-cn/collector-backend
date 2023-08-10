@@ -64,7 +64,6 @@ func (scr *ServerCollectReturn) HandleCollectReturn(data string) error {
 			scr.SqlQueryChannel <- &sql_query
 		}
 	}
-	wg.Wait()
 
 	return nil
 }
