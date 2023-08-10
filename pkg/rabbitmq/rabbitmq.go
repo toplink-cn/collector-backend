@@ -24,9 +24,9 @@ import (
 )
 
 const (
-	PointChanCap        int   = 1000
-	SqlQueryChanCap     int   = 1000
-	NotificationChanCap int   = 1000
+	PointChanCap        int   = 20000
+	SqlQueryChanCap     int   = 20000
+	NotificationChanCap int   = 20000
 	PoolCap             int32 = 100
 )
 
