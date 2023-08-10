@@ -5,7 +5,6 @@ import (
 	"collector-backend/util"
 	"encoding/json"
 	"strconv"
-	"sync"
 	"time"
 
 	client "github.com/influxdata/influxdb1-client"
@@ -30,7 +29,6 @@ func (scr *ServerCollectReturn) HandleCollectReturn(data string) error {
 	err := json.Unmarshal([]byte(data), &s)
 	util.FailOnError(err, "无法解析JSON数据")
 
-	wg := sync.WaitGroup{}
 	// power reading
 	p := client.Point{
 		Measurement: "server_power",
@@ -45,9 +43,8 @@ func (scr *ServerCollectReturn) HandleCollectReturn(data string) error {
 			"value": float64(s.PowerReading),
 		},
 	}
-	wg.Add(1)
 	scr.InfluxPointChannel <- &models.MyPoint{
-		Wg:    &wg,
+		Wg:    nil,
 		Point: p,
 	}
 

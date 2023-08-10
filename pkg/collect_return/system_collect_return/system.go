@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"reflect"
 	"strconv"
-	"sync"
 
 	client "github.com/influxdata/influxdb1-client"
 )
@@ -39,7 +38,6 @@ func (scr *SystemCollectReturn) HandleCollectReturn(data string) error {
 		id = "0"
 	}
 
-	wg := sync.WaitGroup{}
 	for _, parame := range s.Parames {
 		for key, val := range parame.Value.(map[string]interface{}) {
 			field := reflect.ValueOf(val)
@@ -60,9 +58,8 @@ func (scr *SystemCollectReturn) HandleCollectReturn(data string) error {
 					},
 				}
 				// fmt.Println(p)
-				wg.Add(1)
 				scr.InfluxPointChannel <- &models.MyPoint{
-					Wg:    &wg,
+					Wg:    nil,
 					Point: p,
 				}
 			case reflect.Map:
@@ -82,16 +79,14 @@ func (scr *SystemCollectReturn) HandleCollectReturn(data string) error {
 						},
 					}
 					// fmt.Println(p)
-					wg.Add(1)
 					scr.InfluxPointChannel <- &models.MyPoint{
-						Wg:    &wg,
+						Wg:    nil,
 						Point: p,
 					}
 				}
 			}
 		}
 	}
-	wg.Wait()
 
 	return nil
 }

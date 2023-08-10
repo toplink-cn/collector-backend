@@ -294,7 +294,9 @@ func (ctrl *Controller) ListenInfluxWriteChannel() {
 		for i := 0; i < len; i++ {
 			myPoint := <-ctrl.InfluxPointWriteChannel
 			points = append(points, myPoint.Point)
-			myPoint.Wg.Done()
+			if myPoint.Wg != nil {
+				myPoint.Wg.Done()
+			}
 		}
 
 		bp := client.BatchPoints{
