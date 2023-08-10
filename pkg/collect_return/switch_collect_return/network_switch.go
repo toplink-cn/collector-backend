@@ -179,9 +179,15 @@ func (scr *SwitchCollectReturn) getLastPortFlow(switchId uint64, portId uint64, 
 	}
 	var val float64
 	v := reflect.ValueOf(vals["value"])
-	if isBlank(v) {
-		logger.Println("val is zero value")
-		return val, errors.New("val is zero value")
+	if ok := v.IsNil(); !ok {
+		errMsg := "value is nil"
+		logger.Println(errMsg)
+		return val, errors.New(errMsg)
+	}
+	if ok := v.IsZero(); !ok {
+		errMsg := "value is zero"
+		logger.Println(errMsg)
+		return val, errors.New(errMsg)
 	}
 	switch typeStr := v.Type().String(); typeStr {
 	case "json.Number":
@@ -209,26 +215,4 @@ func (scr *SwitchCollectReturn) getLastPortFlow(switchId uint64, portId uint64, 
 	}
 	conn.CloseClient(c)
 	return val, nil
-}
-
-// func IsZeroOfUnderlyingType(x interface{}) bool {
-// 	return reflect.DeepEqual(x, reflect.Zero(reflect.TypeOf(x)).Interface())
-// }
-
-func isBlank(value reflect.Value) bool {
-	switch value.Kind() {
-	case reflect.String:
-		return value.Len() == 0
-	case reflect.Bool:
-		return !value.Bool()
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return value.Int() == 0
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		return value.Uint() == 0
-	case reflect.Float32, reflect.Float64:
-		return value.Float() == 0
-	case reflect.Interface, reflect.Ptr:
-		return value.IsNil()
-	}
-	return reflect.DeepEqual(value.Interface(), reflect.Zero(value.Type()).Interface())
 }
