@@ -177,10 +177,7 @@ func (scr *SwitchCollectReturn) getLastPortFlow(switchId uint64, portId uint64, 
 		}
 	}
 	var val float64
-	if vals["value"] == nil {
-		return val, errors.New("val is nil")
-	}
-	if IsZeroOfUnderlyingType(vals["value"]) {
+	if vals["value"] != nil && IsZeroOfUnderlyingType(vals["value"]) {
 		return val, errors.New("val is zero value")
 	}
 	v := reflect.ValueOf(vals["value"])
