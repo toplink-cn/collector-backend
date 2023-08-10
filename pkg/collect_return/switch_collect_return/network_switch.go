@@ -5,6 +5,7 @@ import (
 	"collector-backend/models"
 	"collector-backend/util"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -177,6 +178,10 @@ func (scr *SwitchCollectReturn) getLastPortFlow(switchId uint64, portId uint64, 
 	}
 	var val float64
 	v := reflect.ValueOf(vals["value"])
+	zeroValue := reflect.Zero(v.Type()).Interface()
+	if v.Interface() == zeroValue {
+		return val, errors.New("val is zero value")
+	}
 	switch typeStr := v.Type().String(); typeStr {
 	case "json.Number":
 		v, ok := vals["value"].(json.Number)
