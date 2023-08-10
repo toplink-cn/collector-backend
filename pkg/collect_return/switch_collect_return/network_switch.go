@@ -3,6 +3,7 @@ package switch_collect_return
 import (
 	"collector-backend/db"
 	"collector-backend/models"
+	"collector-backend/pkg/logger"
 	"collector-backend/util"
 	"encoding/json"
 	"errors"
@@ -178,6 +179,7 @@ func (scr *SwitchCollectReturn) getLastPortFlow(switchId uint64, portId uint64, 
 	}
 	var val float64
 	if vals["value"] != nil && IsZeroOfUnderlyingType(vals["value"]) {
+		logger.Println("val is zero value")
 		return val, errors.New("val is zero value")
 	}
 	v := reflect.ValueOf(vals["value"])
