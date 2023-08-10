@@ -180,7 +180,7 @@ func (scr *SwitchCollectReturn) getLastPortFlow(switchId uint64, portId uint64, 
 	var val float64
 	v := reflect.ValueOf(vals["value"])
 	if !v.IsValid() {
-		errMsg := "value is invalid"
+		errMsg := "value is invalid, query:" + query
 		logger.Println(errMsg)
 		return val, errors.New(errMsg)
 	}
