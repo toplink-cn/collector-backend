@@ -177,11 +177,10 @@ func (scr *SwitchCollectReturn) getLastPortFlow(switchId uint64, portId uint64, 
 		}
 	}
 	var val float64
-	v := reflect.ValueOf(vals["value"])
-	zeroValue := reflect.Zero(v.Type()).Interface()
-	if v.Interface() == zeroValue {
+	if IsZeroOfUnderlyingType(vals["value"]) {
 		return val, errors.New("val is zero value")
 	}
+	v := reflect.ValueOf(vals["value"])
 	switch typeStr := v.Type().String(); typeStr {
 	case "json.Number":
 		v, ok := vals["value"].(json.Number)
@@ -208,4 +207,8 @@ func (scr *SwitchCollectReturn) getLastPortFlow(switchId uint64, portId uint64, 
 	}
 	conn.CloseClient(c)
 	return val, nil
+}
+
+func IsZeroOfUnderlyingType(x interface{}) bool {
+	return reflect.DeepEqual(x, reflect.Zero(reflect.TypeOf(x)).Interface())
 }
