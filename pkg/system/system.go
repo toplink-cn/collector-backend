@@ -36,7 +36,7 @@ func (sc *SystemCollector) Collect() {
 }
 
 func (sc *SystemCollector) collectIOStat() {
-	args := []string{"-x", "-o", "JSON", "1", "2"}
+	args := []string{"-x", "-o", "JSON", "5", "2"}
 	out, err := sc.run("iostat", args)
 	if err != nil {
 		return
