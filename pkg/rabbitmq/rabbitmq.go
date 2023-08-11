@@ -27,7 +27,7 @@ const (
 	PointChanCap        int   = 10000
 	SqlQueryChanCap     int   = 10000
 	NotificationChanCap int   = 10000
-	PoolCap             int32 = 101
+	PoolCap             int32 = 10
 )
 
 type Connection struct {
