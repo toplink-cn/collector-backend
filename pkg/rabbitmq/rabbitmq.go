@@ -107,8 +107,8 @@ func NewCtrl() *Controller {
 		SqlQueryChannel:         make(chan *models.SqlQuery, SqlQueryChanCap),
 		NotificationChannel:     make(chan *models.Notification, NotificationChanCap),
 		Pool:                    gopool.NewPool("collector-handler", poolCap, gopool.NewConfig()),
-		InfluxDbResetTimer:      time.NewTimer(5 * time.Second),
-		SqlQueryResetTimer:      time.NewTimer(5 * time.Second),
+		InfluxDbResetTimer:      time.NewTimer(1 * time.Second),
+		SqlQueryResetTimer:      time.NewTimer(1 * time.Second),
 	}
 }
 
@@ -219,14 +219,14 @@ func (ctrl *Controller) RunTimer() {
 				second++
 				// fmt.Println("InfluxDbSwitch current second:", second)
 				ctrl.InfluxDbSwitch = false
-				if second%5 == 0 {
+				if second%1 == 0 {
 					second = 0
-					resetTimer.Reset(5 * time.Second)
+					resetTimer.Reset(1 * time.Second)
 					ctrl.InfluxDbSwitch = true
 				}
 			case <-resetTimer.C:
 				second = 0
-				resetTimer.Reset(5 * time.Second)
+				resetTimer.Reset(1 * time.Second)
 				ctrl.InfluxDbSwitch = true
 			}
 		}
@@ -241,14 +241,14 @@ func (ctrl *Controller) RunTimer() {
 				second++
 				// fmt.Println("SqlQuerySwitch current second:", second)
 				ctrl.SqlQuerySwitch = false
-				if second%5 == 0 {
+				if second%1 == 0 {
 					second = 0
-					resetTimer.Reset(5 * time.Second)
+					resetTimer.Reset(1 * time.Second)
 					ctrl.SqlQuerySwitch = true
 				}
 			case <-resetTimer.C:
 				second = 0
-				resetTimer.Reset(5 * time.Second)
+				resetTimer.Reset(1 * time.Second)
 				ctrl.SqlQuerySwitch = true
 			}
 		}
@@ -333,7 +333,7 @@ func (ctrl *Controller) ListenSqlQueryChannel() {
 
 		if ctrl.LastSqlQueryChanLen != len {
 			ctrl.SqlQuerySwitch = false
-			ctrl.SqlQueryResetTimer.Reset(5 * time.Second)
+			ctrl.SqlQueryResetTimer.Reset(1 * time.Second)
 		}
 
 		if ctrl.SqlQuerySwitch || len >= PointChanCap {
