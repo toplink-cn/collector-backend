@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"runtime"
 	"time"
 
 	"github.com/bytedance/gopkg/util/gopool"
@@ -24,10 +25,10 @@ import (
 )
 
 const (
-	PointChanCap        int   = 10000
-	SqlQueryChanCap     int   = 10000
-	NotificationChanCap int   = 10000
-	PoolCap             int32 = 10
+	PointChanCap        int = 10000
+	SqlQueryChanCap     int = 10000
+	NotificationChanCap int = 10000
+	PoolCapPreCoreNum   int = 4
 )
 
 type Connection struct {
@@ -97,14 +98,17 @@ type Controller struct {
 // }
 
 func NewCtrl() *Controller {
+	numCPU := runtime.NumCPU()
+	poolCap := int32(PoolCapPreCoreNum * numCPU)
+	fmt.Printf("Number of CPU cores: %d, poolCap: %d\n", numCPU, poolCap)
 	return &Controller{
 		InfluxPointChannel:      make(chan *models.MyPoint, PointChanCap),
 		InfluxPointWriteChannel: make(chan *models.MyPoint, PointChanCap),
 		SqlQueryChannel:         make(chan *models.SqlQuery, SqlQueryChanCap),
 		NotificationChannel:     make(chan *models.Notification, NotificationChanCap),
-		Pool:                    gopool.NewPool("collector-handler", PoolCap, gopool.NewConfig()),
-		InfluxDbResetTimer:      time.NewTimer(10 * time.Second),
-		SqlQueryResetTimer:      time.NewTimer(10 * time.Second),
+		Pool:                    gopool.NewPool("collector-handler", poolCap, gopool.NewConfig()),
+		InfluxDbResetTimer:      time.NewTimer(5 * time.Second),
+		SqlQueryResetTimer:      time.NewTimer(5 * time.Second),
 	}
 }
 
@@ -215,14 +219,14 @@ func (ctrl *Controller) RunTimer() {
 				second++
 				// fmt.Println("InfluxDbSwitch current second:", second)
 				ctrl.InfluxDbSwitch = false
-				if second%10 == 0 {
+				if second%5 == 0 {
 					second = 0
-					resetTimer.Reset(10 * time.Second)
+					resetTimer.Reset(5 * time.Second)
 					ctrl.InfluxDbSwitch = true
 				}
 			case <-resetTimer.C:
 				second = 0
-				resetTimer.Reset(10 * time.Second)
+				resetTimer.Reset(5 * time.Second)
 				ctrl.InfluxDbSwitch = true
 			}
 		}
@@ -237,14 +241,14 @@ func (ctrl *Controller) RunTimer() {
 				second++
 				// fmt.Println("SqlQuerySwitch current second:", second)
 				ctrl.SqlQuerySwitch = false
-				if second%10 == 0 {
+				if second%5 == 0 {
 					second = 0
-					resetTimer.Reset(10 * time.Second)
+					resetTimer.Reset(5 * time.Second)
 					ctrl.SqlQuerySwitch = true
 				}
 			case <-resetTimer.C:
 				second = 0
-				resetTimer.Reset(10 * time.Second)
+				resetTimer.Reset(5 * time.Second)
 				ctrl.SqlQuerySwitch = true
 			}
 		}
@@ -329,7 +333,7 @@ func (ctrl *Controller) ListenSqlQueryChannel() {
 
 		if ctrl.LastSqlQueryChanLen != len {
 			ctrl.SqlQuerySwitch = false
-			ctrl.SqlQueryResetTimer.Reset(10 * time.Second)
+			ctrl.SqlQueryResetTimer.Reset(5 * time.Second)
 		}
 
 		if ctrl.SqlQuerySwitch || len >= PointChanCap {
