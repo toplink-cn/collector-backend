@@ -141,8 +141,8 @@ func (sc *SystemCollector) collectDisk() {
 	disksParame := model_system.Parame{
 		Key: "disk",
 		Value: map[string]interface{}{
-			"total":      float32(total / 1024 / 1024),
-			"used":       float32(used / 1024 / 1024),
+			"total":      float32(total),
+			"used":       float32(used),
 			"percentage": float32(percentage),
 		},
 	}
