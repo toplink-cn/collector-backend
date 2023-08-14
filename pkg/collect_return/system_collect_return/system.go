@@ -41,15 +41,15 @@ func (scr *SystemCollectReturn) HandleCollectReturn(data string) error {
 	for _, parame := range s.Parames {
 		for key, val := range parame.Value.(map[string]interface{}) {
 			field := reflect.ValueOf(val)
-			// fmt.Printf("字段名称：%s，字段值：%v，类型: %v \n", key, val, field.Kind())
+			// fmt.Printf("字段名称：%s，字段值：%v，类型: %v, parame.Key: %s \n", key, val, field.Kind(), parame.Key)
 			switch field.Kind() {
 			case reflect.Float64:
 				p := client.Point{
-					Measurement: "server_power",
+					Measurement: "server_" + parame.Key,
 					Tags: map[string]string{
 						"type":     t,
 						"slave_id": id,
-						"parame":   "server_" + parame.Key,
+						"parame":   parame.Key,
 						"label":    key,
 					},
 					Time: s.Time,
@@ -65,11 +65,11 @@ func (scr *SystemCollectReturn) HandleCollectReturn(data string) error {
 			case reflect.Map:
 				for k, v := range val.(map[string]interface{}) {
 					p := client.Point{
-						Measurement: "server_power",
+						Measurement: "server_" + parame.Key,
 						Tags: map[string]string{
 							"type":     t,
 							"slave_id": id,
-							"parame":   "server_" + parame.Key,
+							"parame":   parame.Key,
 							"label":    key,
 							"status":   k,
 						},
