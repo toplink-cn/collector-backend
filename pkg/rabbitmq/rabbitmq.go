@@ -6,7 +6,6 @@ import (
 	"collector-backend/pkg/collect_return/server_collect_return"
 	"collector-backend/pkg/collect_return/switch_collect_return"
 	"collector-backend/pkg/collect_return/system_collect_return"
-	"collector-backend/pkg/logger"
 	"collector-backend/services"
 	"collector-backend/util"
 	"crypto/tls"
@@ -161,7 +160,7 @@ func (ctrl *Controller) ListenQueue() {
 		ctrl.Queue.Name, // 队列名称
 		"slave-0",       // 消费者标签
 		true,            // 是否自动回复
-		true,            // 是否独占
+		false,           // 是否独占
 		false,           // 是否阻塞等待
 		false,           // 额外的属性
 		nil,             // 消费者取消回调函数
@@ -258,7 +257,7 @@ func (ctrl *Controller) RunTimer() {
 func (ctrl *Controller) ListenInfluxChannel() {
 	for {
 		len := len(ctrl.InfluxPointChannel)
-		logger.Printf("%v buffer points chan len: %d, switch: %v  \n", time.Now().Format("2006-01-02 15:04:05"), len, ctrl.InfluxDbSwitch)
+		// logger.Printf("%v buffer points chan len: %d, switch: %v  \n", time.Now().Format("2006-01-02 15:04:05"), len, ctrl.InfluxDbSwitch)
 
 		if len == 0 {
 			time.Sleep(1 * time.Second)
@@ -276,7 +275,7 @@ func (ctrl *Controller) ListenInfluxChannel() {
 				tmp = <-ctrl.InfluxPointChannel
 				ctrl.InfluxPointWriteChannel <- tmp
 			}
-			logger.Println("transferData to write chan")
+			// logger.Println("transferData to write chan")
 			ctrl.LastInfluxPointChanLen = 0
 		} else {
 			ctrl.LastInfluxPointChanLen = len
@@ -293,7 +292,7 @@ func (ctrl *Controller) ListenInfluxWriteChannel() {
 			time.Sleep(1 * time.Second)
 			continue
 		}
-		logger.Printf("%v write points chan len: %d, switch: %v  \n", time.Now().Format("2006-01-02 15:04:05"), len, ctrl.InfluxDbSwitch)
+		// logger.Printf("%v write points chan len: %d, switch: %v  \n", time.Now().Format("2006-01-02 15:04:05"), len, ctrl.InfluxDbSwitch)
 		points := []client.Point{}
 		for i := 0; i < len; i++ {
 			myPoint := <-ctrl.InfluxPointWriteChannel
@@ -316,7 +315,7 @@ func (ctrl *Controller) ListenInfluxWriteChannel() {
 		if r != nil {
 			fmt.Printf("unexpected response. expected %v, actual %v", nil, r)
 		}
-		logger.Println("write points done")
+		// logger.Println("write points done")
 		conn.CloseClient(c)
 	}
 }
