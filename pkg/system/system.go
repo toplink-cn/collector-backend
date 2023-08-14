@@ -62,8 +62,8 @@ func (sc *SystemCollector) collectIOStat() {
 			disks := map[string]map[string]interface{}{}
 			for _, d := range currentStatistic.Disks {
 				disk := map[string]interface{}{}
-				disk["wkB/s"] = d.WriteKBS
-				disk["rkB/s"] = d.ReadKBS
+				disk["kB_wrtn/s"] = d.WriteKBS
+				disk["kB_read/s"] = d.ReadKBS
 				disk["util"] = d.Util
 				disks[d.DiskDevice] = disk
 			}
@@ -148,6 +148,7 @@ func (sc *SystemCollector) collectDisk() {
 	}
 	sc.SystemInfo.Parames = append(sc.SystemInfo.Parames, disksParame)
 
+	fmt.Println("diskPath", diskPath)
 	diskPathParame := model_system.Parame{
 		Key:   "disk_path",
 		Value: diskPath,
