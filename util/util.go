@@ -3,6 +3,7 @@ package util
 import (
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -42,4 +43,9 @@ func GetRootDir() string {
 func IsTesting() bool {
 	args := os.Args
 	return len(args) > 0 && strings.Contains(strings.ToLower(os.Args[0]), "go-build")
+}
+
+func RoundFloat(val float64, precision uint) float64 {
+	ratio := math.Pow(10, float64(precision))
+	return math.Round(val*ratio) / ratio
 }
