@@ -5,6 +5,7 @@ import (
 	model_system "collector-backend/models/system"
 	"collector-backend/util"
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"strconv"
 
@@ -41,7 +42,7 @@ func (scr *SystemCollectReturn) HandleCollectReturn(data string) error {
 	for _, parame := range s.Parames {
 		for key, val := range parame.Value.(map[string]interface{}) {
 			field := reflect.ValueOf(val)
-			// fmt.Printf("字段名称：%s，字段值：%v，类型: %v, parame.Key: %s \n", key, val, field.Kind(), parame.Key)
+			fmt.Printf("字段名称：%s，字段值：%v，类型: %v, parame.Key: %s \n", key, val, field.Kind(), parame.Key)
 			switch field.Kind() {
 			case reflect.Float64:
 				p := client.Point{
