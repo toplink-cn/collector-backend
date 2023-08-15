@@ -2,19 +2,34 @@ package logger
 
 import (
 	"log"
-	"os"
 )
 
-func Println(v ...any) {
-	env := os.Getenv("enviroment")
-	if env != "production" {
-		log.Println(v...)
+func ExitIfErr(err error, msg string) {
+	if err != nil {
+		log.Fatalf("%s, err: %v \n", msg, err.Error())
+	}
+}
+
+func LogIfErr(err error) {
+	if err != nil {
+		log.Printf("%s \n", err.Error())
+	}
+}
+
+func Fatal(msg string) {
+	log.Fatal(msg)
+}
+
+func LogIfErrWithMsg(err error, msg string) {
+	if err != nil {
+		log.Printf("%s, err: %v \n", msg, err.Error())
 	}
 }
 
 func Printf(format string, v ...any) {
-	env := os.Getenv("enviroment")
-	if env != "production" {
-		log.Printf(format, v...)
-	}
+	log.Printf(format, v...)
+}
+
+func Println(msg string) {
+	log.Println(msg)
 }

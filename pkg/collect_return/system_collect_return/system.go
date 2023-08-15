@@ -3,9 +3,8 @@ package system_collect_return
 import (
 	"collector-backend/models"
 	model_system "collector-backend/models/system"
-	"collector-backend/util"
+	"collector-backend/pkg/logger"
 	"encoding/json"
-	"fmt"
 	"reflect"
 	"strconv"
 
@@ -27,7 +26,7 @@ func NewSystemCollectReturn(pointChannel chan *models.MyPoint, SqlQueryChannel c
 func (scr *SystemCollectReturn) HandleCollectReturn(data string) error {
 	var s model_system.SystemInfo
 	err := json.Unmarshal([]byte(data), &s)
-	util.FailOnError(err, "无法解析JSON数据")
+	logger.LogIfErrWithMsg(err, "NetworkSwitch Unable To Parse JSON Data")
 
 	var t string
 	var id string
@@ -42,7 +41,7 @@ func (scr *SystemCollectReturn) HandleCollectReturn(data string) error {
 	for _, parame := range s.Parames {
 		for key, val := range parame.Value.(map[string]interface{}) {
 			field := reflect.ValueOf(val)
-			fmt.Printf("字段名称：%s，字段值：%v，类型: %v, parame.Key: %s \n", key, val, field.Kind(), parame.Key)
+			// fmt.Printf("字段名称：%s，字段值：%v，类型: %v, parame.Key: %s \n", key, val, field.Kind(), parame.Key)
 			switch field.Kind() {
 			case reflect.Float64:
 				p := client.Point{
@@ -58,7 +57,6 @@ func (scr *SystemCollectReturn) HandleCollectReturn(data string) error {
 						"value": val,
 					},
 				}
-				// fmt.Println(p)
 				scr.InfluxPointChannel <- &models.MyPoint{
 					Wg:    nil,
 					Point: p,
@@ -79,7 +77,6 @@ func (scr *SystemCollectReturn) HandleCollectReturn(data string) error {
 							"value": v,
 						},
 					}
-					// fmt.Println(p)
 					scr.InfluxPointChannel <- &models.MyPoint{
 						Wg:    nil,
 						Point: p,

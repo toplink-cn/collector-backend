@@ -4,7 +4,6 @@ import (
 	"collector-backend/db"
 	"collector-backend/models"
 	"collector-backend/pkg/logger"
-	"collector-backend/util"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -32,7 +31,7 @@ func NewSwitchCollectReturn(pointChannel chan *models.MyPoint, SqlQueryChannel c
 func (scr *SwitchCollectReturn) HandleCollectReturn(data string) error {
 	var ns models.NetworkSwitch
 	err := json.Unmarshal([]byte(data), &ns)
-	util.FailOnError(err, "无法解析JSON数据")
+	logger.LogIfErrWithMsg(err, "NetworkSwitch Unable To Parse JSON Data")
 	wg := sync.WaitGroup{}
 	// switch
 	for _, pdu := range ns.Pdus {
@@ -138,13 +137,11 @@ func (scr *SwitchCollectReturn) HandleCollectReturn(data string) error {
 	}
 
 	wg.Wait()
-	// fmt.Println("wg wait done")
 	scr.NotificationChannel <- &models.Notification{
 		Type:  "switch",
 		RelID: ns.ID,
 		Time:  time.Now(),
 	}
-	// fmt.Println("push into notification channel")
 
 	return nil
 }
@@ -186,7 +183,7 @@ func (scr *SwitchCollectReturn) getLastPortFlow(switchId uint64, portId uint64, 
 		return val, errors.New(errMsg)
 	}
 	if !v.CanInterface() {
-		fmt.Printf("if is %#+v (%v)\n", v.Interface(), v.Interface() == nil)
+		logger.Printf("if is %#+v (%v)\n", v.Interface(), v.Interface() == nil)
 		errMsg := "value cannot interface"
 		logger.Println(errMsg)
 		conn.CloseClient(c)
@@ -201,7 +198,7 @@ func (scr *SwitchCollectReturn) getLastPortFlow(switchId uint64, portId uint64, 
 			} else if floatValue, err := v.Float64(); err == nil {
 				val = float64(floatValue)
 			} else {
-				fmt.Println("Invalid number format:", v)
+				logger.Printf("Invalid number format: %v \n", v)
 			}
 		}
 	case "string":
@@ -214,7 +211,7 @@ func (scr *SwitchCollectReturn) getLastPortFlow(switchId uint64, portId uint64, 
 	case "float", "float32", "float64":
 		val = float64(v.Float())
 	default:
-		fmt.Println("unexcepted value type")
+		logger.Println("unexcepted value type")
 	}
 	conn.CloseClient(c)
 	return val, nil

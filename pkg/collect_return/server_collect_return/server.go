@@ -2,7 +2,7 @@ package server_collect_return
 
 import (
 	"collector-backend/models"
-	"collector-backend/util"
+	"collector-backend/pkg/logger"
 	"encoding/json"
 	"strconv"
 	"time"
@@ -27,12 +27,11 @@ func NewServerCollectReturn(pointChannel chan *models.MyPoint, SqlQueryChannel c
 func (scr *ServerCollectReturn) HandleCollectReturn(data string) error {
 	var s models.Server
 	err := json.Unmarshal([]byte(data), &s)
-	util.FailOnError(err, "无法解析JSON数据")
+	logger.LogIfErrWithMsg(err, "NetworkSwitch Unable To Parse JSON Data")
 
 	// power reading
 	p := client.Point{
 		Measurement: "server_power",
-		//['type' => 'instant', 'server_id' => $server->id, 'cabinet_id' =>  $server->cabinet_id],
 		Tags: map[string]string{
 			"type":       "instant",
 			"server_id":  strconv.Itoa(int(s.ID)),

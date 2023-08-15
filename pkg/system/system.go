@@ -3,10 +3,10 @@ package system
 import (
 	"bytes"
 	model_system "collector-backend/models/system"
+	"collector-backend/pkg/logger"
 	"collector-backend/util"
 	"context"
 	"encoding/json"
-	"fmt"
 	"os/exec"
 	"time"
 
@@ -34,7 +34,7 @@ func (sc *SystemCollector) Collect() {
 	sc.collectDisk()
 	sc.collectNet()
 	sc.SystemInfo.Time = time.Now()
-	// fmt.Println("collect done \n", sc.SystemInfo)
+	// logger.Println("collect done \n", sc.SystemInfo)
 }
 
 func (sc *SystemCollector) collectIOStat() {
@@ -46,7 +46,7 @@ func (sc *SystemCollector) collectIOStat() {
 
 	var iostat model_system.IoStat
 	if err := json.Unmarshal([]byte(out), &iostat); err != nil {
-		fmt.Println("Failed to unmarshal JSON:", err)
+		logger.Println("Failed to unmarshal JSON")
 		return
 	}
 
@@ -75,7 +75,6 @@ func (sc *SystemCollector) collectIOStat() {
 				Value: disks,
 			}
 			sc.SystemInfo.Parames = append(sc.SystemInfo.Parames, disksParame)
-			// fmt.Println(sc.SystemInfo.Parames)
 		}
 	}
 }
@@ -83,7 +82,7 @@ func (sc *SystemCollector) collectIOStat() {
 func (sc *SystemCollector) collectRam() {
 	vm, err := mem.VirtualMemory()
 	if err != nil {
-		fmt.Println("Failed to get virtual memory info:", err)
+		logger.Printf("Failed to get virtual memory info, err: %v \n", err.Error())
 		return
 	}
 
@@ -102,7 +101,7 @@ func (sc *SystemCollector) collectDisk() {
 	args := []string{"-c", `mount | grep /app | grep -v iso | grep -v /app/run | awk '{print $3}'`}
 	out, err := sc.run("bash", args)
 	if err != nil {
-		fmt.Println(err.Error())
+		logger.Println(err.Error())
 		return
 	}
 
@@ -117,11 +116,9 @@ func (sc *SystemCollector) collectDisk() {
 		path := string(line)
 		usage, err := disk.Usage(path)
 		if err != nil {
-			fmt.Printf("Error: %v\n", err)
+			logger.Println(err.Error())
 			continue
 		}
-
-		// fmt.Println(usage)
 
 		usageStat := map[string]interface{}{
 			"total":      usage.Total,
@@ -151,7 +148,6 @@ func (sc *SystemCollector) collectDisk() {
 	}
 	sc.SystemInfo.Parames = append(sc.SystemInfo.Parames, disksParame)
 
-	fmt.Println("diskPath", diskPath)
 	diskPathParame := model_system.Parame{
 		Key:   "disk_path",
 		Value: diskPath,
@@ -162,7 +158,7 @@ func (sc *SystemCollector) collectDisk() {
 func (sc *SystemCollector) collectNet() {
 	ioCountersStat, err := net.IOCounters(true)
 	if err != nil {
-		fmt.Println("获取网络接口信息失败:", err)
+		logger.Println(err.Error())
 		return
 	}
 
@@ -171,7 +167,6 @@ func (sc *SystemCollector) collectNet() {
 		if ioCounterStat.Name == "veth" || ioCounterStat.Name == "br-" || ioCounterStat.Name == "docker" {
 			continue
 		}
-		// fmt.Printf("%s out: %d, in: %d \n", ioCounterStat.Name, ioCounterStat.BytesSent, ioCounterStat.BytesRecv)
 		ioStat := map[string]interface{}{
 			"in":  float32(ioCounterStat.BytesRecv),
 			"out": float32(ioCounterStat.BytesSent),
@@ -193,7 +188,6 @@ func (sc *SystemCollector) run(command string, args []string) ([]byte, error) {
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, command, args...)
-	// fmt.Println("cmd: ", cmd)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return out, err
