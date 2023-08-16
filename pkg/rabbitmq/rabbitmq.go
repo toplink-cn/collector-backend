@@ -192,7 +192,7 @@ func (ctrl *Controller) RunTimer() {
 			case <-ticker.C:
 				second++
 				ctrl.InfluxDbSwitch = false
-				if second%1 == 0 {
+				if second%2 == 0 {
 					second = 0
 					resetTimer.Reset(1 * time.Second)
 					ctrl.InfluxDbSwitch = true
@@ -213,7 +213,7 @@ func (ctrl *Controller) RunTimer() {
 			case <-ticker.C:
 				second++
 				ctrl.SqlQuerySwitch = false
-				if second%1 == 0 {
+				if second%2 == 0 {
 					second = 0
 					resetTimer.Reset(1 * time.Second)
 					ctrl.SqlQuerySwitch = true
@@ -287,7 +287,7 @@ func (ctrl *Controller) ListenInfluxWriteChannel() {
 		if r != nil {
 			logger.Printf("unexpected response. expected %v, actual %v", nil, r.Error())
 		}
-		// logger.Println("write points done")
+		logger.Printf("write %d points done", len)
 		conn.CloseClient(c)
 	}
 }
@@ -326,7 +326,7 @@ func (ctrl *Controller) ListenSqlQueryChannel() {
 			err = tx.Commit()
 			logger.LogIfErr(err)
 			mysql_conn.Close()
-			logger.Println("write sql done")
+			logger.Printf("write %d sql done", len)
 			ctrl.LastSqlQueryChanLen = 0
 		} else {
 			ctrl.LastSqlQueryChanLen = len
