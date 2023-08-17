@@ -22,7 +22,8 @@ import (
 )
 
 const (
-	PointChanCap        int = 10000
+	PointChanCap        int = 50000
+	PointWriteChanCap   int = 5000
 	SqlQueryChanCap     int = 10000
 	NotificationChanCap int = 10000
 	PoolCapPreCoreNum   int = 2
@@ -242,7 +243,7 @@ func (ctrl *Controller) ListenInfluxChannel() {
 		// 	ctrl.InfluxDbResetTimer.Reset(10 * time.Second)
 		// }
 
-		if ctrl.InfluxDbSwitch || len >= PointChanCap {
+		if ctrl.InfluxDbSwitch || len >= PointWriteChanCap {
 			var tmp *models.MyPoint
 			for i := 0; i < len; i++ {
 				tmp = <-ctrl.InfluxPointChannel
