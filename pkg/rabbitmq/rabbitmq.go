@@ -192,7 +192,7 @@ func (ctrl *Controller) RunTimer() {
 			case <-ticker.C:
 				second++
 				ctrl.InfluxDbSwitch = false
-				if second%2 == 0 {
+				if second%5 == 0 {
 					second = 0
 					resetTimer.Reset(1 * time.Second)
 					ctrl.InfluxDbSwitch = true
@@ -213,7 +213,7 @@ func (ctrl *Controller) RunTimer() {
 			case <-ticker.C:
 				second++
 				ctrl.SqlQuerySwitch = false
-				if second%2 == 0 {
+				if second%5 == 0 {
 					second = 0
 					resetTimer.Reset(1 * time.Second)
 					ctrl.SqlQuerySwitch = true
