@@ -174,7 +174,9 @@ func (ctrl *Controller) ListenQueue() {
 				continue
 			}
 			err = json.Unmarshal(decodedMsg, &msg)
-			logger.LogIfErrWithMsg(err, "Fail To Decode JSON Data")
+			if err != nil {
+				logger.Printf("Fail To Decode JSON Data, err: %v, decodedMsg: %v", err, decodedMsg)
+			}
 			if msg.Type == "" {
 				continue
 			}
