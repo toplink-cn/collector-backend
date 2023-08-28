@@ -32,6 +32,7 @@ const (
 type Connection struct {
 	Config Config
 	Conn   *amqp.Connection
+	Notify chan *amqp.Error
 }
 type Config struct {
 	Url string
@@ -41,7 +42,9 @@ func NewConnection(config Config) (Connection, error) {
 	conn := Connection{}
 	amqpConn, err := amqp.Dial(config.Url)
 	logger.ExitIfErr(err, "Failed to connect to RabbitMQ")
+	notify := amqpConn.NotifyClose(make(chan *amqp.Error)) //error channel
 	conn.Conn = amqpConn
+	conn.Notify = notify
 	return conn, nil
 }
 
@@ -68,13 +71,16 @@ func NewConnectionWithTLS(config Config) (Connection, error) {
 	conn := Connection{}
 	amqpConn, err := amqp.DialTLS(config.Url, tlsConfig)
 	logger.ExitIfErr(err, "Failed to connect to RabbitMQ")
+	notify := amqpConn.NotifyClose(make(chan *amqp.Error)) //error channel
 	conn.Conn = amqpConn
+	conn.Notify = notify
 	return conn, nil
 }
 
 type Controller struct {
 	Channel                 *amqp.Channel
 	Queue                   amqp.Queue
+	Notify                  chan *amqp.Error
 	NotifyChannel           *amqp.Channel
 	NotifyQueue             amqp.Queue
 	InfluxPointChannel      chan *models.MyPoint
@@ -110,16 +116,16 @@ func NewCtrl() *Controller {
 	}
 }
 
-func (ctrl *Controller) SetupChannelAndQueue(name string, amqpConn *amqp.Connection) error {
+func (ctrl *Controller) SetupChannelAndQueue(name string, amqpConn *amqp.Connection, notify chan *amqp.Error) error {
 	ch, err := amqpConn.Channel()
 	logger.ExitIfErr(err, "Failed to open a channel")
 
 	q, err := ch.QueueDeclare(
 		name,  // 队列名称
 		false, // 是否持久化
-		true,  // 是否自动删除
+		false, // 是否自动删除
 		false, // 是否具有排他性
-		true,  // 是否阻塞等待
+		false, // 是否阻塞等待
 		nil,   // 额外的属性
 	)
 	logger.ExitIfErr(err, "Failed to declare a queue")
@@ -128,6 +134,7 @@ func (ctrl *Controller) SetupChannelAndQueue(name string, amqpConn *amqp.Connect
 
 	ctrl.Channel = ch
 	ctrl.Queue = q
+	ctrl.Notify = notify
 
 	return nil
 }
@@ -153,33 +160,40 @@ func (ctrl *Controller) ListenQueue() {
 	logger.ExitIfErr(err, "Failed to register a consumer")
 
 	// 处理接收到的消息
-	for d := range msgs {
-		var msg models.Msg
-		decodedMsg, err := base64.StdEncoding.DecodeString(string(d.Body))
-		if err != nil {
-			logger.Printf("fail to decode base64 data, %s \n", string(d.Body))
-			return
-		}
-		err = json.Unmarshal(decodedMsg, &msg)
-		logger.LogIfErrWithMsg(err, "Fail To Decode JSON Data")
-		if msg.Type == "" {
-			return
-		}
-		ctrl.Pool.Go(func() {
-			switch msg.Type {
-			case "switch":
-				switchCollectReturn := switch_collect_return.NewSwitchCollectReturn(ctrl.InfluxPointChannel, ctrl.SqlQueryChannel)
-				switchCollectReturn.NotificationChannel = ctrl.NotificationChannel
-				services.RegisterCollectReturn(switchCollectReturn)
-				services.CollectReturn().HandleCollectReturn(msg.Data)
-			case "server":
-				services.RegisterCollectReturn(server_collect_return.NewServerCollectReturn(ctrl.InfluxPointChannel, ctrl.SqlQueryChannel))
-				services.CollectReturn().HandleCollectReturn(msg.Data)
-			case "system":
-				services.RegisterCollectReturn(system_collect_return.NewSystemCollectReturn(ctrl.InfluxPointChannel, ctrl.SqlQueryChannel))
-				services.CollectReturn().HandleCollectReturn(msg.Data)
+	for { //receive loop
+		select { //check connection
+		case err := <-ctrl.Notify:
+			//work with error
+			logger.Printf("notify err, %v", err.Error())
+			break //reconnect
+		case d := <-msgs:
+			var msg models.Msg
+			decodedMsg, err := base64.StdEncoding.DecodeString(string(d.Body))
+			if err != nil {
+				logger.Printf("fail to decode base64 data, %s \n", string(d.Body))
+				continue
 			}
-		})
+			err = json.Unmarshal(decodedMsg, &msg)
+			logger.LogIfErrWithMsg(err, "Fail To Decode JSON Data")
+			if msg.Type == "" {
+				continue
+			}
+			ctrl.Pool.Go(func() {
+				switch msg.Type {
+				case "switch":
+					switchCollectReturn := switch_collect_return.NewSwitchCollectReturn(ctrl.InfluxPointChannel, ctrl.SqlQueryChannel)
+					switchCollectReturn.NotificationChannel = ctrl.NotificationChannel
+					services.RegisterCollectReturn(switchCollectReturn)
+					services.CollectReturn().HandleCollectReturn(msg.Data)
+				case "server":
+					services.RegisterCollectReturn(server_collect_return.NewServerCollectReturn(ctrl.InfluxPointChannel, ctrl.SqlQueryChannel))
+					services.CollectReturn().HandleCollectReturn(msg.Data)
+				case "system":
+					services.RegisterCollectReturn(system_collect_return.NewSystemCollectReturn(ctrl.InfluxPointChannel, ctrl.SqlQueryChannel))
+					services.CollectReturn().HandleCollectReturn(msg.Data)
+				}
+			})
+		}
 	}
 }
 

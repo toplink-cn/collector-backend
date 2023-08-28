@@ -2,6 +2,7 @@ package main
 
 import (
 	"collector-backend/pkg/crontab"
+	"collector-backend/pkg/logger"
 	"collector-backend/pkg/rabbitmq"
 	"collector-backend/util"
 	"log"
@@ -22,10 +23,10 @@ func run() {
 	defer conn.Conn.Close()
 
 	notifyCtrl := rabbitmq.NewCtrl()
-	notifyCtrl.SetupChannelAndQueue("collector-notify", conn.Conn)
+	notifyCtrl.SetupChannelAndQueue("collector-notify", conn.Conn, conn.Notify)
 
 	returnCtrl := rabbitmq.NewCtrl()
-	returnCtrl.SetupChannelAndQueue("collector-return", conn.Conn)
+	returnCtrl.SetupChannelAndQueue("collector-return", conn.Conn, conn.Notify)
 	returnCtrl.NotifyChannel = notifyCtrl.Channel
 	returnCtrl.NotifyQueue = notifyCtrl.Queue
 
@@ -37,5 +38,9 @@ func run() {
 	go returnCtrl.ListenInfluxWriteChannel()
 	go returnCtrl.ListenSqlQueryChannel()
 	go returnCtrl.ListenNotificationChannel()
-	returnCtrl.RunCtrl()
+
+	forever := make(chan bool)
+	go returnCtrl.ListenQueue()
+	logger.Println(" [*] Waiting for messages. To exit, press CTRL+C")
+	<-forever
 }
