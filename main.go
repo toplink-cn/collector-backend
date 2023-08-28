@@ -23,10 +23,10 @@ func run() {
 	defer conn.Conn.Close()
 
 	notifyCtrl := rabbitmq.NewCtrl()
-	notifyCtrl.SetupChannelAndQueue("collector-notify", conn.Conn, conn.Notify)
+	notifyCtrl.SetupChannelAndQueue("collector-notify", conn.Conn, conn.Notify, false)
 
 	returnCtrl := rabbitmq.NewCtrl()
-	returnCtrl.SetupChannelAndQueue("collector-return", conn.Conn, conn.Notify)
+	returnCtrl.SetupChannelAndQueue("collector-return", conn.Conn, conn.Notify, false)
 	returnCtrl.NotifyChannel = notifyCtrl.Channel
 	returnCtrl.NotifyQueue = notifyCtrl.Queue
 
